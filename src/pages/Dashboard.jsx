@@ -58,7 +58,10 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="dashboard__stats">
         {stats.map((stat, idx) => (
-          <Card key={idx} title={stat.label}>
+          <div key={idx} className={`card dashboard__stat ${stat.alerta ? 'dashboard__stat--alerta' : ''}`}>
+            <div className="stat-header">
+              <p className="stat-label">{stat.label}</p>
+            </div>
             <div className="stat-content">
               <div className={`stat-numero ${stat.alerta ? 'stat-numero--alerta' : ''}`}>
                 {stat.valor}
@@ -66,7 +69,7 @@ export default function Dashboard() {
               {stat.tendencia && <p className="stat-tendencia">{stat.tendencia}</p>}
               {stat.alerta && <p className="stat-alerta">⚠️ Requiere acción inmediata</p>}
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 

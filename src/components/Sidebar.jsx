@@ -35,7 +35,16 @@ export default function Sidebar({ paginaActual, onNavegar, rol = "estudiante" })
 
   return (
     <aside className="sidebar">
-      <div className="sidebar__logo">Proxora</div>
+      <div className="sidebar__logo">
+        <div className="sidebar__logo-icon">
+          <span>P</span>
+        </div>
+        <div className="sidebar__logo-text">
+          <div className="sidebar__logo-main">Proxora</div>
+          <div className="sidebar__logo-subtitle">Faculty Portal</div>
+          <div className="sidebar__logo-tag">ACADEMIC MANAGEMENT</div>
+        </div>
+      </div>
       <nav className="sidebar__nav">
         {items.map(item => (
           <button

@@ -5,7 +5,7 @@
   width: var(--sidebar-w);
   height: 100vh;
   background: var(--blanco);
-  border-right: 1px solid #EBEBEB;
+  border-right: 1px solid #6ef40e;
   display: flex;
   flex-direction: column;
   padding: 0 0 16px;
@@ -14,7 +14,7 @@
 
 .sidebar-logo {
   padding: 22px 20px 18px;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid #5ddd18;
 }
 
 .logo-texto {
@@ -129,7 +129,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px 0;
-  border-top: 1px solid #F0F0F0;
+  border-top: 1px solid #31df12;
   margin-top: 8px;
 }
 
