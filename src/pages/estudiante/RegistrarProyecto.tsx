@@ -1,0 +1,955 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { UsuarioResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse } from '../../types/api.types';
+import { proyectosService } from '../../services/proyectos.service';
+import { semestresService } from '../../services/semestres.service';
+import { materiasService } from '../../services/materias.service';
+import { lineasService } from '../../services/lineas.service';
+import { usuariosService } from '../../services/usuarios.service';
+import { useAuth } from '../../context/AuthContext';
+import LayoutEstudiante from '../../components/layout/LayoutEstudiante';
+import AvatarIniciales from '../../components/ui/AvatarIniciales';
+import './RegistrarProyecto.css';
+
+// ── Tipos de documento del catálogo fijo ─────────────────────────
+const TIPOS_DOCUMENTO = [
+  { id: 1, nombre: 'Propuesta' },
+  { id: 2, nombre: 'Avance' },
+  { id: 3, nombre: 'Especificación Técnica' },
+  { id: 4, nombre: 'Informe Final' },
+] as const;
+
+const NIVELES_VISIBILIDAD = [
+  { id: 1, nombre: 'Solo metadatos' },
+  { id: 2, nombre: 'Solo lectura' },
+  { id: 3, nombre: 'Lectura y descarga' },
+] as const;
+
+const DESCRIPCIONES_VISIBILIDAD: Record<number, string> = {
+  1: 'El público solo verá el título, resumen y equipo. Los documentos no estarán accesibles.',
+  2: 'El público puede leer los resúmenes y ver los documentos en pantalla sin posibilidad de descarga.',
+  3: 'Los documentos son públicos y pueden descargarse libremente.',
+};
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function formatearTamano(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function validarArchivo(file: File): string | null {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  if (!['pdf', 'doc', 'docx'].includes(ext)) return 'Solo se permiten archivos PDF y DOCX';
+  if (file.size > 25 * 1024 * 1024) return 'El archivo no puede superar 25 MB';
+  return null;
+}
+
+// ── Componente ───────────────────────────────────────────────────
+
+export default function RegistrarProyecto() {
+  const navigate = useNavigate();
+  const { usuario } = useAuth();
+
+  // Campos del formulario
+  const [titulo, setTitulo] = useState('');
+  const [resumen, setResumen] = useState('');
+  const [idSemestre, setIdSemestre] = useState('');
+  const [idMateria, setIdMateria] = useState('');
+  const [lineasIds, setLineasIds] = useState<string[]>([]);
+  const [idVisibilidad, setIdVisibilidad] = useState(2);
+  const [documento, setDocumento] = useState<{ archivo: File | null; idTipo: number | string; etiquetaVersion: string }>({
+    archivo: null,
+    idTipo: '',
+    etiquetaVersion: '',
+  });
+
+  // Personas seleccionadas
+  const [integrantesSeleccionados, setIntegrantesSeleccionados] = useState<UsuarioResponse[]>([]);
+  const [directoresSeleccionados, setDirectoresSeleccionados] = useState<UsuarioResponse[]>([]);
+  const [evaluadoresSeleccionados, setEvaluadoresSeleccionados] = useState<UsuarioResponse[]>([]);
+
+  // Búsqueda de integrantes (API con debounce)
+  const [busquedaIntegrantes, setBusquedaIntegrantes] = useState('');
+  const [resultadosBusquedaIntegrantes, setResultadosBusquedaIntegrantes] = useState<UsuarioResponse[]>([]);
+  const [mostrandoDropdownIntegrantes, setMostrandoDropdownIntegrantes] = useState(false);
+  const timerIntegrantes = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Búsqueda de docentes (local, cargados al montar)
+  const [todoDocentes, setTodoDocentes] = useState<UsuarioResponse[]>([]);
+  const [busquedaDirector, setBusquedaDirector] = useState('');
+  const [busquedaEvaluador, setBusquedaEvaluador] = useState('');
+  const [mostrandoDropdownDocentes, setMostrandoDropdownDocentes] = useState(false);
+  const [mostrandoDropdownEvaluadores, setMostrandoDropdownEvaluadores] = useState(false);
+
+  // Líneas de investigación
+  const [todasLineas, setTodasLineas] = useState<LineaInvestigacionResponse[]>([]);
+  const [busquedaLinea, setBusquedaLinea] = useState('');
+  const [mostrandoDropdownLineas, setMostrandoDropdownLineas] = useState(false);
+
+  // Catálogos
+  const [semestresActivos, setSemestresActivos] = useState<SemestreResponse[]>([]);
+  const [materiasActivas, setMateriasActivas] = useState<MateriaResponse[]>([]);
+
+  // UI
+  const [registrando, setRegistrando] = useState(false);
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const [dragOver, setDragOver] = useState(false);
+  const [errorArchivo, setErrorArchivo] = useState('');
+  const [advertenciaEvaluadores, setAdvertenciaEvaluadores] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Refs para cierre por clic externo
+  const refDropdownIntegrantes = useRef<HTMLDivElement>(null);
+  const refDropdownDirector = useRef<HTMLDivElement>(null);
+  const refDropdownEvaluador = useRef<HTMLDivElement>(null);
+  const refDropdownLineas = useRef<HTMLDivElement>(null);
+
+  // ── Carga inicial ───────────────────────────────────────────────
+
+  useEffect(() => {
+    semestresService.listarActivos({ size: 100 })
+      .then((r) => setSemestresActivos(r.content))
+      .catch(() => semestresService.listar({ size: 100 }).then((r) => setSemestresActivos(r.content)).catch(() => {}));
+
+    materiasService.listarActivas({ size: 100 })
+      .then((r) => setMateriasActivas(r.content))
+      .catch(() => materiasService.listar({ size: 100 }).then((r) => setMateriasActivas(r.content)).catch(() => {}));
+
+    lineasService.listarActivas({ size: 100 })
+      .then((r) => setTodasLineas(r.content))
+      .catch(() => lineasService.listar({ size: 100 }).then((r) => setTodasLineas(r.content)).catch(() => {}));
+
+    usuariosService.listarPorRol('docente', { size: 50 })
+      .then((r) => setTodoDocentes(r.content))
+      .catch(() => {});
+  }, []);
+
+  // Agrega automáticamente al estudiante en sesión como integrante
+  useEffect(() => {
+    if (!usuario) return;
+    const integrante: UsuarioResponse = {
+      id: usuario.id ?? '',
+      nombre: usuario.nombre ?? 'Estudiante',
+      apellido: usuario.apellido ?? '',
+      correo: usuario.correo,
+      activo: true,
+      nombreRol: 'estudiante',
+    };
+    setIntegrantesSeleccionados([integrante]);
+  }, [usuario]);
+
+  // Debounce búsqueda de integrantes (400ms, mínimo 3 caracteres)
+  useEffect(() => {
+    if (busquedaIntegrantes.length < 3) {
+      setResultadosBusquedaIntegrantes([]);
+      setMostrandoDropdownIntegrantes(false);
+      return;
+    }
+    if (timerIntegrantes.current) clearTimeout(timerIntegrantes.current);
+    timerIntegrantes.current = setTimeout(async () => {
+      try {
+        const r = await usuariosService.buscar(busquedaIntegrantes, { size: 10 });
+        setResultadosBusquedaIntegrantes(r.content);
+        setMostrandoDropdownIntegrantes(true);
+      } catch {
+        setResultadosBusquedaIntegrantes([]);
+      }
+    }, 400);
+    return () => {
+      if (timerIntegrantes.current) clearTimeout(timerIntegrantes.current);
+    };
+  }, [busquedaIntegrantes]);
+
+  // Cierre de dropdowns al clic externo
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (refDropdownIntegrantes.current && !refDropdownIntegrantes.current.contains(e.target as Node)) {
+        setMostrandoDropdownIntegrantes(false);
+      }
+      if (refDropdownDirector.current && !refDropdownDirector.current.contains(e.target as Node)) {
+        setMostrandoDropdownDocentes(false);
+      }
+      if (refDropdownEvaluador.current && !refDropdownEvaluador.current.contains(e.target as Node)) {
+        setMostrandoDropdownEvaluadores(false);
+      }
+      if (refDropdownLineas.current && !refDropdownLineas.current.contains(e.target as Node)) {
+        setMostrandoDropdownLineas(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // ── Handlers de personas ────────────────────────────────────────
+
+  const handleAddIntegrante = (u: UsuarioResponse) => {
+    if (integrantesSeleccionados.length >= 3) return;
+    if (integrantesSeleccionados.some((i) => i.id === u.id)) return;
+    setIntegrantesSeleccionados((prev) => [...prev, u]);
+    setBusquedaIntegrantes('');
+    setMostrandoDropdownIntegrantes(false);
+  };
+
+  const handleRemoveIntegrante = (id: string) => {
+    if (usuario?.id && id === usuario.id) return;
+    setIntegrantesSeleccionados((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleAddDirector = (u: UsuarioResponse) => {
+    if (directoresSeleccionados.some((d) => d.id === u.id)) return;
+    setDirectoresSeleccionados((prev) => [...prev, u]);
+    setBusquedaDirector('');
+    setMostrandoDropdownDocentes(false);
+  };
+
+  const handleRemoveDirector = (id: string) => {
+    setDirectoresSeleccionados((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const handleAddEvaluador = (u: UsuarioResponse) => {
+    if (directoresSeleccionados.some((d) => d.id === u.id)) return;
+    if (evaluadoresSeleccionados.some((e) => e.id === u.id)) return;
+    setEvaluadoresSeleccionados((prev) => [...prev, u]);
+    setBusquedaEvaluador('');
+    setMostrandoDropdownEvaluadores(false);
+  };
+
+  const handleRemoveEvaluador = (id: string) => {
+    setEvaluadoresSeleccionados((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  // ── Handlers de líneas ──────────────────────────────────────────
+
+  const handleAddLinea = (id: string) => {
+    if (lineasIds.includes(id)) return;
+    setLineasIds((prev) => [...prev, id]);
+    setBusquedaLinea('');
+    setMostrandoDropdownLineas(false);
+  };
+
+  const handleRemoveLinea = (id: string) => {
+    setLineasIds((prev) => prev.filter((l) => l !== id));
+  };
+
+  // ── Handlers de archivo ─────────────────────────────────────────
+
+  const handleFileChange = (file: File) => {
+    const err = validarArchivo(file);
+    if (err) {
+      setErrorArchivo(err);
+      return;
+    }
+    setErrorArchivo('');
+    setDocumento((prev) => ({ ...prev, archivo: file }));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileChange(file);
+  };
+
+  // ── Validación ──────────────────────────────────────────────────
+
+  const validar = useCallback((): Record<string, string> => {
+    const errs: Record<string, string> = {};
+
+    if (!titulo.trim()) {
+      errs.titulo = 'El título del proyecto es obligatorio';
+    } else if (titulo.trim().length < 10) {
+      errs.titulo = 'El título debe tener al menos 10 caracteres';
+    } else if (titulo.trim().length > 300) {
+      errs.titulo = 'El título no puede superar 300 caracteres';
+    }
+
+    if (!resumen.trim()) {
+      errs.resumen = 'El resumen es obligatorio';
+    } else if (resumen.trim().length < 50) {
+      errs.resumen = 'El resumen debe tener al menos 50 caracteres';
+    }
+
+    if (documento.archivo) {
+      if (!documento.idTipo) errs.tipoDocumento = 'Selecciona el tipo de documento';
+      if (!documento.etiquetaVersion.trim()) errs.etiquetaVersion = 'Ingresa una etiqueta de versión';
+    }
+
+    return errs;
+  }, [titulo, resumen, documento]);
+
+  // ── Envío ────────────────────────────────────────────────────────
+
+  const handleSubmit = async () => {
+    const errs = validar();
+    if (Object.keys(errs).length > 0) {
+      setErrores(errs);
+      return;
+    }
+    setErrores({});
+    setRegistrando(true);
+    setAdvertenciaEvaluadores('');
+
+    try {
+      // PASO 1: Crear el proyecto
+      const proyecto = await proyectosService.crear({
+        titulo: titulo.trim(),
+        resumen: resumen.trim(),
+        idSemestre: idSemestre || null,
+        idMateria: idMateria || null,
+        idEstado: 1,
+        idVisibilidad: idVisibilidad,
+        idRegistradoPor: usuario?.id ?? '',
+        integrantesIds: integrantesSeleccionados.map((i) => i.id),
+        directoresIds: directoresSeleccionados.map((d) => d.id),
+        lineasIds: lineasIds,
+      });
+
+      // PASO 2 (solo si hay archivo): Registrar la versión
+      if (documento.archivo) {
+        // TODO: implementar subida real a S3 con URL prefirmada
+        // cuando el backend implemente GET /api/documentos/url-subida
+        await proyectosService.crearVersion(proyecto.id, {
+          idTipo: documento.idTipo,
+          etiquetaVersion: documento.etiquetaVersion.trim(),
+          rutaS3: `proyectos/${proyecto.id}/versiones/${crypto.randomUUID()}/${documento.archivo.name}`,
+          nombreArchivo: documento.archivo.name,
+          tamanoBytes: documento.archivo.size,
+          mimeType: documento.archivo.type,
+          idSubidoPor: usuario?.id ?? '',
+        });
+      }
+
+      // PASO 3: Asignar evaluadores
+      if (evaluadoresSeleccionados.length > 0) {
+        let fallaron = 0;
+        for (const evaluador of evaluadoresSeleccionados) {
+          try {
+            await proyectosService.asignarEvaluador(proyecto.id, {
+              idDocente: evaluador.id,
+              idAsignadoPor: usuario?.id ?? '',
+            });
+          } catch {
+            fallaron++;
+          }
+        }
+        if (fallaron > 0) {
+          setAdvertenciaEvaluadores(
+            'El proyecto fue registrado pero algunos evaluadores no pudieron ser asignados. Puedes asignarlos más tarde.'
+          );
+          return;
+        }
+      }
+
+      navigate('/estudiante/dashboard?registrado=true');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number } };
+      if (axiosErr.response?.status === 400 || axiosErr.response?.status === 404) {
+        setErrores({ general: 'Error al registrar el proyecto. Verifica los datos e intenta de nuevo.' });
+      } else {
+        setErrores({ general: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
+      }
+    } finally {
+      setRegistrando(false);
+    }
+  };
+
+  // ── Listas derivadas ─────────────────────────────────────────────
+
+  const resultadosDirectores = todoDocentes.filter((d) => {
+    if (!busquedaDirector.trim()) return false;
+    const texto = busquedaDirector.toLowerCase();
+    return (
+      `${d.nombre} ${d.apellido}`.toLowerCase().includes(texto) ||
+      d.correo.toLowerCase().includes(texto)
+    );
+  });
+
+  const resultadosEvaluadores = todoDocentes.filter((d) => {
+    if (!busquedaEvaluador.trim()) return false;
+    if (directoresSeleccionados.some((dir) => dir.id === d.id)) return false;
+    const texto = busquedaEvaluador.toLowerCase();
+    return (
+      `${d.nombre} ${d.apellido}`.toLowerCase().includes(texto) ||
+      d.correo.toLowerCase().includes(texto)
+    );
+  });
+
+  const lineasFiltradas = todasLineas.filter((l) => {
+    if (!busquedaLinea.trim()) return true;
+    return l.nombre.toLowerCase().includes(busquedaLinea.toLowerCase());
+  }).filter((l) => !lineasIds.includes(l.id));
+
+  const lineasSeleccionadas = todasLineas.filter((l) => lineasIds.includes(l.id));
+
+  // ── Render ───────────────────────────────────────────────────────
+
+  return (
+    <LayoutEstudiante itemActivo="registrar">
+      {/* Encabezado */}
+      <div className="rp__header">
+        <h1 className="rp__header-titulo">Registrar Nuevo Proyecto</h1>
+        <p className="rp__header-subtitulo">
+          Registra tu proyecto de grado o propuesta de investigación del programa de Ingeniería de Sistemas.
+        </p>
+      </div>
+
+      {errores.general && (
+        <div className="rp__error-general" role="alert">{errores.general}</div>
+      )}
+      {advertenciaEvaluadores && (
+        <div className="rp__advertencia" role="alert">{advertenciaEvaluadores}</div>
+      )}
+
+      {/* Layout de dos columnas */}
+      <div className="rp__columnas">
+
+        {/* ── COLUMNA IZQUIERDA ── */}
+        <div className="rp__col-izq">
+
+          {/* Tarjeta Detalles */}
+          <div className="rp__card">
+            <div className="rp__card-header">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="rp__card-titulo">Detalles del Proyecto</span>
+            </div>
+
+            {/* Título */}
+            <div className="rp__campo">
+              <label htmlFor="rp-titulo" className="rp__label">TÍTULO DEL PROYECTO</label>
+              <input
+                id="rp-titulo"
+                type="text"
+                className={`rp__input${errores.titulo ? ' rp__input--error' : ''}`}
+                placeholder="Ej. Implementación de Blockchain en cadenas de suministro académico"
+                value={titulo}
+                onChange={(e) => { setTitulo(e.target.value); setErrores((p) => ({ ...p, titulo: '' })); }}
+                aria-invalid={!!errores.titulo}
+                aria-describedby={errores.titulo ? 'rp-error-titulo' : undefined}
+              />
+              {errores.titulo && <p id="rp-error-titulo" className="rp__error-campo" role="alert">{errores.titulo}</p>}
+              <p className="rp__ayuda">El título debe ser conciso y técnicamente descriptivo.</p>
+            </div>
+
+            {/* Semestre */}
+            <div className="rp__campo">
+              <label htmlFor="rp-semestre" className="rp__label">SEMESTRE ACADÉMICO</label>
+              <select
+                id="rp-semestre"
+                className="rp__select"
+                value={idSemestre}
+                onChange={(e) => setIdSemestre(e.target.value)}
+              >
+                <option value="">Selecciona un semestre</option>
+                {semestresActivos.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Resumen */}
+            <div className="rp__campo">
+              <label htmlFor="rp-resumen" className="rp__label">RESUMEN</label>
+              <textarea
+                id="rp-resumen"
+                className={`rp__textarea${errores.resumen ? ' rp__input--error' : ''}`}
+                rows={6}
+                placeholder="Define el planteamiento del problema, el alcance y los objetivos técnicos del proyecto..."
+                value={resumen}
+                onChange={(e) => { setResumen(e.target.value); setErrores((p) => ({ ...p, resumen: '' })); }}
+                aria-invalid={!!errores.resumen}
+                aria-describedby={errores.resumen ? 'rp-error-resumen' : undefined}
+              />
+              {errores.resumen && <p id="rp-error-resumen" className="rp__error-campo" role="alert">{errores.resumen}</p>}
+            </div>
+          </div>
+
+          {/* Tarjeta Equipo Académico */}
+          <div className="rp__card rp__card--mt">
+            <div className="rp__card-header">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+              </svg>
+              <span className="rp__card-titulo">Equipo Académico</span>
+            </div>
+
+            {/* Sub-sección: Integrantes */}
+            <div className="rp__subseccion">
+              <p className="rp__label">INTEGRANTES DEL GRUPO</p>
+
+              <div className="rp__buscador-wrap" ref={refDropdownIntegrantes}>
+                <div className="rp__buscador-fila">
+                  <input
+                    type="text"
+                    className="rp__input"
+                    placeholder="Buscar por nombre o correo..."
+                    value={busquedaIntegrantes}
+                    onChange={(e) => setBusquedaIntegrantes(e.target.value)}
+                    disabled={integrantesSeleccionados.length >= 3}
+                    aria-label="Buscar integrante"
+                  />
+                  <button
+                    type="button"
+                    className="rp__btn-agregar"
+                    disabled={integrantesSeleccionados.length >= 3}
+                  >
+                    Agregar Miembro
+                  </button>
+                </div>
+
+                {integrantesSeleccionados.length >= 3 && (
+                  <p className="rp__limite-aviso">Máximo 3 integrantes por grupo</p>
+                )}
+
+                {mostrandoDropdownIntegrantes && resultadosBusquedaIntegrantes.length > 0 && (
+                  <div className="rp__dropdown" role="listbox">
+                    {resultadosBusquedaIntegrantes.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="rp__dropdown-item"
+                        onClick={() => handleAddIntegrante(u)}
+                        role="option"
+                      >
+                        <AvatarIniciales nombre={u.nombre} apellido={u.apellido} tamaño="sm" />
+                        <div className="rp__dropdown-info">
+                          <span className="rp__dropdown-nombre">{u.nombre} {u.apellido}</span>
+                          <span className="rp__dropdown-correo">{u.correo}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {integrantesSeleccionados.length === 0 ? (
+                <p className="rp__lista-vacia">No hay integrantes seleccionados</p>
+              ) : (
+                <ul className="rp__lista-personas">
+                  {integrantesSeleccionados.map((u) => {
+                    const esUsuarioActual = usuario?.id ? u.id === usuario.id : u.correo === usuario?.correo;
+                    return (
+                      <li key={u.id} className="rp__persona-fila">
+                        <AvatarIniciales nombre={u.nombre} apellido={u.apellido} tamaño="md" />
+                        <div className="rp__persona-info">
+                          <span className="rp__persona-nombre">{u.nombre} {u.apellido}</span>
+                          <span className="rp__persona-correo">{u.correo}</span>
+                        </div>
+                        {!esUsuarioActual && (
+                          <button
+                            type="button"
+                            className="rp__btn-eliminar"
+                            onClick={() => handleRemoveIntegrante(u.id)}
+                            aria-label={`Eliminar a ${u.nombre}`}
+                          >
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* Sub-sección: Director / Co-Director */}
+            <div className="rp__subseccion rp__subseccion--borde">
+              <p className="rp__label">DIRECTOR / CO-DIRECTOR</p>
+
+              <div className="rp__buscador-wrap" ref={refDropdownDirector}>
+                <div className="rp__buscador-fila">
+                  <input
+                    type="text"
+                    className="rp__input"
+                    placeholder="Buscar director..."
+                    value={busquedaDirector}
+                    onChange={(e) => { setBusquedaDirector(e.target.value); setMostrandoDropdownDocentes(e.target.value.length > 0); }}
+                    aria-label="Buscar director"
+                  />
+                  <button type="button" className="rp__btn-agregar">Agregar</button>
+                </div>
+
+                {mostrandoDropdownDocentes && resultadosDirectores.length > 0 && (
+                  <div className="rp__dropdown" role="listbox">
+                    {resultadosDirectores.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="rp__dropdown-item"
+                        onClick={() => handleAddDirector(d)}
+                        role="option"
+                      >
+                        <AvatarIniciales nombre={d.nombre} apellido={d.apellido} tamaño="sm" />
+                        <div className="rp__dropdown-info">
+                          <span className="rp__dropdown-nombre">{d.nombre} {d.apellido}</span>
+                          <span className="rp__dropdown-correo">{d.correo}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {directoresSeleccionados.length === 0 ? (
+                <p className="rp__lista-vacia">No hay directores seleccionados</p>
+              ) : (
+                <ul className="rp__lista-personas">
+                  {directoresSeleccionados.map((d, idx) => (
+                    <li key={d.id} className="rp__persona-fila">
+                      <AvatarIniciales nombre={d.nombre} apellido={d.apellido} tamaño="md" />
+                      <div className="rp__persona-info">
+                        <span className="rp__persona-nombre">{d.nombre} {d.apellido}</span>
+                        <span className="rp__persona-correo">{d.correo}</span>
+                      </div>
+                      <span className={`rp__badge${idx === 0 ? ' rp__badge--director' : ' rp__badge--codirector'}`}>
+                        {idx === 0 ? 'DIRECTOR' : 'CO-DIRECTOR'}
+                      </span>
+                      <button
+                        type="button"
+                        className="rp__btn-eliminar"
+                        onClick={() => handleRemoveDirector(d.id)}
+                        aria-label={`Eliminar a ${d.nombre}`}
+                      >
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Sub-sección: Evaluadores */}
+            <div className="rp__subseccion rp__subseccion--borde">
+              <p className="rp__label">EVALUADORES</p>
+
+              <div className="rp__buscador-wrap" ref={refDropdownEvaluador}>
+                <div className="rp__buscador-fila">
+                  <input
+                    type="text"
+                    className="rp__input"
+                    placeholder="Buscar evaluador..."
+                    value={busquedaEvaluador}
+                    onChange={(e) => { setBusquedaEvaluador(e.target.value); setMostrandoDropdownEvaluadores(e.target.value.length > 0); }}
+                    aria-label="Buscar evaluador"
+                  />
+                  <button type="button" className="rp__btn-agregar">Agregar</button>
+                </div>
+
+                {mostrandoDropdownEvaluadores && resultadosEvaluadores.length > 0 && (
+                  <div className="rp__dropdown" role="listbox">
+                    {resultadosEvaluadores.map((e) => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        className="rp__dropdown-item"
+                        onClick={() => handleAddEvaluador(e)}
+                        role="option"
+                      >
+                        <AvatarIniciales nombre={e.nombre} apellido={e.apellido} tamaño="sm" />
+                        <div className="rp__dropdown-info">
+                          <span className="rp__dropdown-nombre">{e.nombre} {e.apellido}</span>
+                          <span className="rp__dropdown-correo">{e.correo}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {mostrandoDropdownEvaluadores && busquedaEvaluador.trim() && resultadosEvaluadores.length === 0 && (
+                  <div className="rp__dropdown">
+                    <p className="rp__dropdown-vacio">No se encontraron evaluadores disponibles</p>
+                  </div>
+                )}
+              </div>
+
+              {evaluadoresSeleccionados.length === 0 ? (
+                <p className="rp__lista-vacia">No hay evaluadores seleccionados</p>
+              ) : (
+                <ul className="rp__lista-personas">
+                  {evaluadoresSeleccionados.map((e) => (
+                    <li key={e.id} className="rp__persona-fila">
+                      <AvatarIniciales nombre={e.nombre} apellido={e.apellido} tamaño="md" />
+                      <div className="rp__persona-info">
+                        <span className="rp__persona-nombre">{e.nombre} {e.apellido}</span>
+                        <span className="rp__persona-correo">{e.correo}</span>
+                      </div>
+                      <span className="rp__badge rp__badge--evaluador">EVALUADOR</span>
+                      <button
+                        type="button"
+                        className="rp__btn-eliminar"
+                        onClick={() => handleRemoveEvaluador(e.id)}
+                        aria-label={`Eliminar a ${e.nombre}`}
+                      >
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* Tarjeta Documento del Proyecto */}
+          <div className="rp__card rp__card--mt">
+            <div className="rp__card-header">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span className="rp__card-titulo">Documento del Proyecto</span>
+            </div>
+
+            {/* Tipo de documento */}
+            <div className="rp__campo">
+              <label htmlFor="rp-tipo-doc" className="rp__label">TIPO DE DOCUMENTO</label>
+              <select
+                id="rp-tipo-doc"
+                className={`rp__select${errores.tipoDocumento ? ' rp__input--error' : ''}`}
+                value={documento.idTipo}
+                onChange={(e) => setDocumento((p) => ({ ...p, idTipo: e.target.value }))}
+                aria-invalid={!!errores.tipoDocumento}
+              >
+                <option value="">Selecciona el tipo</option>
+                {TIPOS_DOCUMENTO.map((t) => (
+                  <option key={t.id} value={t.id}>{t.nombre}</option>
+                ))}
+              </select>
+              {errores.tipoDocumento && <p className="rp__error-campo" role="alert">{errores.tipoDocumento}</p>}
+            </div>
+
+            {/* Etiqueta de versión */}
+            <div className="rp__campo">
+              <label htmlFor="rp-version" className="rp__label">ETIQUETA DE VERSIÓN</label>
+              <input
+                id="rp-version"
+                type="text"
+                className={`rp__input${errores.etiquetaVersion ? ' rp__input--error' : ''}`}
+                placeholder="Ej. v1.0, Borrador Final, Propuesta Inicial"
+                maxLength={50}
+                value={documento.etiquetaVersion}
+                onChange={(e) => setDocumento((p) => ({ ...p, etiquetaVersion: e.target.value }))}
+                aria-invalid={!!errores.etiquetaVersion}
+              />
+              {errores.etiquetaVersion && <p className="rp__error-campo" role="alert">{errores.etiquetaVersion}</p>}
+            </div>
+
+            {/* Zona de subida */}
+            <div className="rp__campo">
+              <p className="rp__label">ARCHIVO DEL PROYECTO</p>
+
+              {documento.archivo ? (
+                <div className="rp__archivo-preview">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#6B7280" strokeWidth={1.8} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <div className="rp__archivo-info">
+                    <span className="rp__archivo-nombre">{documento.archivo.name}</span>
+                    <span className="rp__archivo-tamano">{formatearTamano(documento.archivo.size)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="rp__btn-quitar-archivo"
+                    onClick={() => { setDocumento((p) => ({ ...p, archivo: null })); setErrorArchivo(''); }}
+                    aria-label="Quitar archivo"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`rp__dropzone${dragOver ? ' rp__dropzone--over' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Zona de subida de archivos"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+                >
+                  <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={1.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="rp__dropzone-texto">
+                    Arrastra tu archivo aquí o{' '}
+                    <span className="rp__dropzone-enlace">haz clic para seleccionar</span>
+                  </p>
+                  <p className="rp__dropzone-nota">PDF o DOCX • Máximo 25 MB</p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="rp__file-hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }}
+                aria-hidden="true"
+              />
+
+              {errorArchivo && <p className="rp__error-campo" role="alert">{errorArchivo}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* ── COLUMNA DERECHA ── */}
+        <div className="rp__col-der">
+
+          {/* Tarjeta Categorización */}
+          <div className="rp__card">
+            <div className="rp__card-header">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="rp__card-titulo">Categorización</span>
+            </div>
+
+            {/* Materia */}
+            <div className="rp__campo">
+              <label htmlFor="rp-materia" className="rp__label">MATERIA</label>
+              <select
+                id="rp-materia"
+                className="rp__select"
+                value={idMateria}
+                onChange={(e) => setIdMateria(e.target.value)}
+              >
+                <option value="">Selecciona una materia</option>
+                {materiasActivas.map((m) => (
+                  <option key={m.id} value={m.id}>{m.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Líneas de investigación */}
+            <div className="rp__campo">
+              <p className="rp__label">LÍNEAS DE INVESTIGACIÓN</p>
+
+              <div className="rp__buscador-wrap" ref={refDropdownLineas}>
+                <div className="rp__input-icon-wrap">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={2} className="rp__input-icon" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    className="rp__input rp__input--icon"
+                    placeholder="Buscar líneas de investigación..."
+                    value={busquedaLinea}
+                    onChange={(e) => { setBusquedaLinea(e.target.value); setMostrandoDropdownLineas(true); }}
+                    onFocus={() => setMostrandoDropdownLineas(true)}
+                    aria-label="Buscar líneas de investigación"
+                  />
+                </div>
+
+                {mostrandoDropdownLineas && lineasFiltradas.length > 0 && (
+                  <div className="rp__dropdown" role="listbox">
+                    {lineasFiltradas.slice(0, 8).map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        className="rp__dropdown-item rp__dropdown-item--simple"
+                        onClick={() => handleAddLinea(l.id)}
+                        role="option"
+                      >
+                        {l.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {lineasSeleccionadas.length > 0 && (
+                <div className="rp__chips">
+                  {lineasSeleccionadas.map((l) => (
+                    <span key={l.id} className="rp__chip">
+                      {l.nombre}
+                      <button
+                        type="button"
+                        className="rp__chip-x"
+                        onClick={() => handleRemoveLinea(l.id)}
+                        aria-label={`Quitar línea ${l.nombre}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tarjeta Visibilidad */}
+          <div className="rp__card rp__card--mt">
+            <div className="rp__card-header">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span className="rp__card-titulo">Visibilidad</span>
+            </div>
+
+            <div className="rp__campo">
+              <label htmlFor="rp-visibilidad" className="rp__label">NIVEL DE VISIBILIDAD</label>
+              <select
+                id="rp-visibilidad"
+                className="rp__select"
+                value={idVisibilidad}
+                onChange={(e) => setIdVisibilidad(Number(e.target.value))}
+              >
+                {NIVELES_VISIBILIDAD.map((v) => (
+                  <option key={v.id} value={v.id}>{v.nombre}</option>
+                ))}
+              </select>
+              <p className="rp__ayuda">{DESCRIPCIONES_VISIBILIDAD[idVisibilidad]}</p>
+            </div>
+
+            <div className="rp__bloque-info">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#D97706" strokeWidth={2} className="rp__bloque-info-icono" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="rp__bloque-info-texto">
+                Los proyectos públicos son indexados en el repositorio y visibles durante evaluaciones institucionales.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de acciones */}
+      <div className="rp__acciones">
+        <button
+          type="button"
+          className="rp__btn-cancelar"
+          onClick={() => navigate('/estudiante/dashboard')}
+          disabled={registrando}
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="rp__btn-registrar"
+          onClick={handleSubmit}
+          disabled={registrando}
+          aria-busy={registrando}
+        >
+          {registrando ? 'Registrando...' : (
+            <>
+              Registrar Proyecto
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </>
+          )}
+        </button>
+      </div>
+    </LayoutEstudiante>
+  );
+}

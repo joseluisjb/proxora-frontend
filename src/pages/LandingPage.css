@@ -1,0 +1,102 @@
+.landing-page {
+  min-height: 100vh;
+  background: #FFFFFF;
+  font-family: var(--fuente);
+}
+
+/* ── Contenedor centrado ──────────────────── */
+.landing-contenedor {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+/* ── Barra de filtros ─────────────────────── */
+.landing-filtros-barra {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 16px 0;
+  position: sticky;
+  top: 56px;  /* debajo del navbar */
+  z-index: 90;
+}
+
+/* ── Sección proyectos ────────────────────── */
+.landing-seccion {
+  padding-top: 32px;
+  padding-bottom: 48px;
+}
+
+.landing-seccion-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.landing-seccion-titulo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.landing-seccion-subtitulo {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* ── Botones vista ────────────────────────── */
+.landing-vista-toggles {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.landing-vista-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F3F4F6;
+  color: #6B7280;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.landing-vista-btn:hover {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+.landing-vista-btn--activo {
+  background: #111827;
+  color: #FFFFFF;
+}
+
+.landing-vista-btn--activo:hover {
+  background: #1F2937;
+  color: #FFFFFF;
+}
+
+/* ── Paginación centrada ──────────────────── */
+.landing-paginacion {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+/* ── Responsive ───────────────────────────── */
+@media (max-width: 1024px) {
+  .landing-contenedor { padding: 0 24px; }
+}
+
+@media (max-width: 640px) {
+  .landing-contenedor { padding: 0 16px; }
+  .landing-seccion-header { flex-direction: column; }
+}

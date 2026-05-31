@@ -1,0 +1,294 @@
+.reg-page {
+  min-height: 100vh;
+  width: 100vw;
+  background: #F3F4F6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 48px;
+}
+
+/* ── Logo ─────────────────────────────────────── */
+.reg-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 48px;
+  margin-bottom: 24px;
+}
+
+.reg-logo__icono {
+  width: 28px;
+  height: 28px;
+  color: #B91C1C;
+  flex-shrink: 0;
+}
+
+.reg-logo__texto {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.15em;
+  font-family: var(--fuente);
+}
+
+/* ── Tarjeta ──────────────────────────────────── */
+.reg-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  width: 460px;
+  padding: 40px;
+}
+
+/* ── Encabezado ───────────────────────────────── */
+.reg-encabezado {
+  margin-bottom: 24px;
+}
+
+.reg-titulo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+  font-family: var(--fuente);
+}
+
+.reg-subtitulo {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.5;
+  font-family: var(--fuente);
+}
+
+/* ── Formulario ───────────────────────────────── */
+.reg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Fila con dos campos */
+.reg-fila {
+  display: flex;
+  gap: 16px;
+}
+
+.reg-fila .reg-campo {
+  flex: 1;
+}
+
+/* Campo individual */
+.reg-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reg-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  font-family: var(--fuente);
+}
+
+/* Input wrapper para íconos */
+.reg-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Input base */
+.reg-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-family: var(--fuente);
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.reg-input::placeholder {
+  color: #9CA3AF;
+}
+
+.reg-input:focus {
+  border-color: #B91C1C;
+}
+
+.reg-input--error {
+  border-color: #EF4444;
+}
+
+.reg-input--error:focus {
+  border-color: #EF4444;
+}
+
+/* Input con ícono izquierdo */
+.reg-input--con-icono-izq {
+  padding-left: 40px;
+}
+
+/* Input con íconos en ambos lados */
+.reg-input--con-ambos-iconos {
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+/* Ícono decorativo izquierdo */
+.reg-input__icono-izq {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  color: #9CA3AF;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ícono clickeable derecho (mostrar/ocultar) */
+.reg-input__icono-der {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  color: #9CA3AF;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  z-index: 1;
+}
+
+.reg-input__icono-der:hover {
+  color: #6B7280;
+}
+
+/* Mensajes de error */
+.reg-error-campo {
+  font-size: 12px;
+  color: #EF4444;
+  margin: 0;
+  font-family: var(--fuente);
+}
+
+.reg-error-general {
+  background: #FEF2F2;
+  border-left: 3px solid #EF4444;
+  border-radius: 6px;
+  padding: 12px 16px;
+  color: #B91C1C;
+  font-size: 14px;
+  margin-bottom: 16px;
+  font-family: var(--fuente);
+}
+
+/* ── Botón principal ──────────────────────────── */
+.reg-btn-primario {
+  width: 100%;
+  padding: 14px;
+  background: #B91C1C;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--fuente);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.reg-btn-primario:hover:not(:disabled) {
+  background: #991B1B;
+}
+
+/* ── Enlace login ─────────────────────────────── */
+.reg-enlace-login {
+  text-align: center;
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+  font-family: var(--fuente);
+}
+
+.reg-enlace-login__link {
+  color: #B91C1C;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--fuente);
+  font-size: 14px;
+}
+
+.reg-enlace-login__link:hover {
+  color: #991B1B;
+}
+
+/* ── Estado de éxito ──────────────────────────── */
+.reg-exito {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: center;
+}
+
+.reg-exito__icono {
+  line-height: 0;
+}
+
+.reg-exito__titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: var(--fuente);
+}
+
+.reg-exito__subtitulo {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.5;
+  font-family: var(--fuente);
+}
+
+.reg-exito__link {
+  color: #B91C1C;
+  font-size: 14px;
+  text-decoration: underline;
+  font-family: var(--fuente);
+  margin-top: 4px;
+}
+
+.reg-exito__link:hover {
+  color: #991B1B;
+}
+
+/* ── Responsivo ───────────────────────────────── */
+@media (max-width: 480px) {
+  .reg-card {
+    width: 92%;
+    padding: 24px;
+  }
+
+  .reg-fila {
+    flex-direction: column;
+    gap: 20px;
+  }
+}

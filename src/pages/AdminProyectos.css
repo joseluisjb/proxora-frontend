@@ -1,0 +1,30 @@
+.adm-proy__etiqueta {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rojo);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.adm-proy__titulo {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--negro);
+  line-height: 1.4;
+}
+
+.adm-proy__meta {
+  font-size: 11px;
+  color: var(--gris-500);
+  margin-top: 2px;
+}
+
+.adm-proy__vis { font-weight: 500; }
+.adm-proy__vis--publico  { color: #16A34A; }
+.adm-proy__vis--privado  { color: var(--gris-500); }
+
+.adm-proy__td-texto {
+  font-size: 13px;
+  color: var(--gris-700);
+}

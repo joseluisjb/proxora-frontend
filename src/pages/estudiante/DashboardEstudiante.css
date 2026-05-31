@@ -1,0 +1,91 @@
+/* Toast de confirmación */
+.dash-est__toast {
+  position: fixed;
+  top: 72px;
+  right: 24px;
+  background: #16A34A;
+  color: #FFFFFF;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: dash-est-toast-appear 3s ease forwards;
+}
+
+@keyframes dash-est-toast-appear {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  12%  { opacity: 1; transform: translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Sección principal */
+.dash-est__seccion {
+  margin-top: 24px;
+}
+
+.dash-est__seccion-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dash-est__titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.dash-est__subtitulo {
+  font-size: 13px;
+  color: #6B7280;
+  max-width: 480px;
+}
+
+/* Botón de vista */
+.dash-est__vista-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.dash-est__vista-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: #6B7280;
+  cursor: default;
+  transition: none;
+}
+
+.dash-est__vista-btn--activo {
+  background: #B91C1C;
+  border-color: #B91C1C;
+  color: #FFFFFF;
+}
+
+/* Grilla de 2 columnas — sobreescribe el default de 3 de GrillaProyectos */
+.dash-est__grilla-2col .gp-grilla {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 768px) {
+  .dash-est__grilla-2col .gp-grilla {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Paginación */
+.dash-est__paginacion {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
