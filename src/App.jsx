@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AdminLayout from './components/AdminLayout';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
+import RecuperarContrasena from './pages/RecuperarContrasena';
 import LandingPage from './pages/LandingPage';
 import DetalleProyecto from './pages/DetalleProyecto';
 import AdminUsuarios from './pages/AdminUsuarios';
@@ -15,7 +16,7 @@ import FormularioMateria from './pages/FormularioMateria';
 import FormularioSemestre from './pages/FormularioSemestre';
 import DashboardEstudiante from './pages/estudiante/DashboardEstudiante';
 import RegistrarProyecto from './pages/estudiante/RegistrarProyecto';
-import './styles/globals.css';
+import './styles/globals.css'
 
 const DESTINO_POR_ROL = {
   administrador: '/admin/usuarios',
@@ -79,6 +80,7 @@ function Rutas() {
       <Route path="/" element={<RutaRaiz />} />
       <Route path="/login" element={<RutaLogin />} />
       <Route path="/registro" element={<RutaRegistro />} />
+      <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
       <Route path="/proyectos/:id" element={<DetalleProyecto />} />
 
       {/* Panel de administración */}

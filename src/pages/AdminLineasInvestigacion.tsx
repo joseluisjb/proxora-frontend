@@ -2,14 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { LineaInvestigacionResponse } from '../types/api.types';
 import { lineasService } from '../services/lineas.service';
-// MOCK DATA - reemplazado por llamada real a lineasService
-// import { LINEAS_MOCK } from '../mocks/lineas';
 import PageHeader from '../components/ui/PageHeader';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import Paginacion from '../components/ui/Paginacion';
 import BotonPrimario from '../components/ui/BotonPrimario';
-import '../styles/admin-ui.css';
-import './AdminLineasInvestigacion.css';
 
 const REGISTROS_POR_PAGINA = 10;
 
@@ -28,15 +24,12 @@ function colorPorNombre(nombre: string) {
 }
 
 function formatearFecha(iso: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  }).format(new Date(iso));
+  return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso));
 }
 
 export default function AdminLineasInvestigacion() {
   const navigate = useNavigate();
   const [pagina, setPagina] = useState(1);
-
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,123 +40,68 @@ export default function AdminLineasInvestigacion() {
     setCargando(true);
     setError(null);
     try {
-      const resultado = await lineasService.listar({
-        page: pagActual - 1,
-        size: REGISTROS_POR_PAGINA,
-        sort: 'creadoEn,desc',
-      });
+      const resultado = await lineasService.listar({ page: pagActual - 1, size: REGISTROS_POR_PAGINA, sort: 'creadoEn,desc' });
       setLineas(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch {
-      setError('Error al cargar los datos. Intenta de nuevo.');
-    } finally {
-      setCargando(false);
-    }
+    } catch { setError('Error al cargar los datos. Intenta de nuevo.'); }
+    finally { setCargando(false); }
   }, []);
 
-  useEffect(() => {
-    cargarLineas(pagina);
-  }, [pagina, cargarLineas]);
-
-  const handleNueva = () => navigate('/admin/lineas-investigacion/nueva');
-
-  const handleEditar = (id: string) => navigate(`/admin/lineas-investigacion/${id}/editar`);
+  useEffect(() => { cargarLineas(pagina); }, [pagina, cargarLineas]);
 
   const handleEliminar = async (linea: LineaInvestigacionResponse) => {
-    if (!window.confirm(
-      `¿Eliminar la línea ${linea.nombre}? Esta acción no se puede deshacer.`
-    )) return;
-    try {
-      await lineasService.eliminar(linea.id);
-      await cargarLineas(pagina);
-    } catch {
-      setError('No se pudo eliminar la línea de investigación. Intenta de nuevo.');
-    }
+    if (!window.confirm(`¿Eliminar la línea ${linea.nombre}? Esta acción no se puede deshacer.`)) return;
+    try { await lineasService.eliminar(linea.id); await cargarLineas(pagina); }
+    catch { setError('No se pudo eliminar la línea de investigación. Intenta de nuevo.'); }
   };
 
+  const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
+  const tdCls = "px-4 py-3.5 border-b border-[#F0F0F0] align-middle";
+
   return (
-    <div className="adm-lin">
+    <div>
       <PageHeader titulo="Líneas de Investigación" />
 
-      <div className="card">
+      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
         {error && (
-          <div
-            style={{
-              background: '#FEF2F2',
-              borderLeft: '3px solid #EF4444',
-              padding: '12px 16px',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-            role="alert"
-          >
-            <span style={{ flex: 1 }}>{error}</span>
-            <button
-              onClick={() => cargarLineas(pagina)}
-              style={{ fontWeight: 600, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Reintentar
-            </button>
+          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
+            <span className="flex-1">{error}</span>
+            <button onClick={() => cargarLineas(pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
           </div>
         )}
 
-        <div className="tabla-contenedor">
-          <table className="tabla">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th style={{ width: '60%' }}>Nombre de la Línea</th>
-                <th style={{ width: '25%' }}>Fecha de Creación</th>
-                <th style={{ width: '15%' }}>Acciones</th>
+                <th className={thCls} style={{ width: '60%' }}>Nombre de la Línea</th>
+                <th className={thCls} style={{ width: '25%' }}>Fecha de Creación</th>
+                <th className={thCls} style={{ width: '15%' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {cargando ? (
-                <tr>
-                  <td colSpan={3}>
-                    <div className="tabla-vacia">
-                      <p style={{ color: 'var(--gris-400)' }}>Cargando...</p>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">Cargando...</div></td></tr>
               ) : lineas.length === 0 ? (
-                <tr>
-                  <td colSpan={3}>
-                    <div className="tabla-vacia">
-                      <div className="tabla-vacia__icono">
-                        <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                      </div>
-                      <p>No hay líneas de investigación registradas</p>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">No hay líneas de investigación registradas</div></td></tr>
               ) : (
                 lineas.map((linea) => {
                   const letras = linea.nombre.substring(0, 2).toUpperCase();
                   const color = colorPorNombre(linea.nombre);
                   return (
-                    <tr key={linea.id}>
-                      <td>
-                        <div className="adm-lin__celda">
-                          <div
-                            className="adm-lin__avatar"
-                            style={{ backgroundColor: color.bg, color: color.text }}
-                          >
+                    <tr key={linea.id} className="hover:bg-[#F8F8F8]">
+                      <td className={tdCls}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: color.bg, color: color.text }}>
                             {letras}
                           </div>
-                          <span className="adm-lin__nombre">{linea.nombre}</span>
+                          <span className="text-sm text-[#111111]">{linea.nombre}</span>
                         </div>
                       </td>
-                      <td className="adm-lin__fecha">{formatearFecha(linea.creadoEn)}</td>
-                      <td>
-                        <FilaTablaAcciones
-                          onEditar={() => handleEditar(linea.id)}
-                          onEliminar={() => handleEliminar(linea)}
-                        />
+                      <td className={`${tdCls} text-[13px] text-[#6B6B6B]`}>{formatearFecha(linea.creadoEn)}</td>
+                      <td className={tdCls}>
+                        <FilaTablaAcciones onEditar={() => navigate(`/admin/lineas-investigacion/${linea.id}/editar`)} onEliminar={() => handleEliminar(linea)} />
                       </td>
                     </tr>
                   );
@@ -173,16 +111,11 @@ export default function AdminLineasInvestigacion() {
           </table>
         </div>
 
-        <div className="adm-lin__pie">
-          <Paginacion
-            paginaActual={pagina}
-            totalPaginas={Math.max(totalPaginas, 1)}
-            totalRegistros={totalElementos}
-            registrosPorPagina={REGISTROS_POR_PAGINA}
-            labelEntidad="líneas"
-            onCambiarPagina={setPagina}
-          />
-          <BotonPrimario label="Nueva Línea de Investigación" onClick={handleNueva} />
+        <div className="flex items-center border-t border-[#F0F0F0] px-4 py-3.5 gap-4">
+          <div className="flex-1">
+            <Paginacion paginaActual={pagina} totalPaginas={Math.max(totalPaginas, 1)} totalRegistros={totalElementos} registrosPorPagina={REGISTROS_POR_PAGINA} labelEntidad="líneas" onCambiarPagina={setPagina} />
+          </div>
+          <BotonPrimario label="Nueva Línea de Investigación" onClick={() => navigate('/admin/lineas-investigacion/nueva')} />
         </div>
       </div>
     </div>

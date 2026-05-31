@@ -1,5 +1,3 @@
-import '../../styles/admin-ui.css';
-
 interface AvatarInicialesProps {
   nombre: string;
   apellido: string;
@@ -27,17 +25,23 @@ function elegirColor(nombre: string, apellido: string) {
   return COLORES_PASTEL[Math.abs(hash) % COLORES_PASTEL.length];
 }
 
+const TAMAÑO_CLASES = {
+  sm: 'w-7 h-7 text-[10px] rounded-md',
+  md: 'w-9 h-9 text-[13px] rounded-full',
+  lg: 'w-12 h-12 text-base rounded-full',
+};
+
 export default function AvatarIniciales({ nombre, apellido, tamaño = 'md', imagenUrl }: AvatarInicialesProps) {
   const color = elegirColor(nombre, apellido);
   const iniciales = `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
 
   return (
     <div
-      className={`avatar-iniciales avatar-iniciales--${tamaño}`}
+      className={`inline-flex items-center justify-center font-semibold tracking-[0.03em] shrink-0 overflow-hidden ${TAMAÑO_CLASES[tamaño]}`}
       style={{ backgroundColor: color.bg, color: color.text }}
     >
       {imagenUrl ? (
-        <img src={imagenUrl} alt={`${nombre} ${apellido}`} />
+        <img src={imagenUrl} alt={`${nombre} ${apellido}`} className="w-full h-full object-cover" />
       ) : (
         iniciales
       )}

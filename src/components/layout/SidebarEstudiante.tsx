@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './SidebarEstudiante.css';
 
 export type ItemSidebarEstudiante =
   | 'mis-proyectos'
@@ -77,25 +76,31 @@ export default function SidebarEstudiante({ itemActivo }: SidebarEstudianteProps
   const navigate = useNavigate();
 
   return (
-    <aside className="sidebar-est">
-      <div className="sidebar-est__identidad">
-        <p className="sidebar-est__titulo">Gestión de Proyectos</p>
-        <p className="sidebar-est__subtitulo">Ingeniería de Sistemas</p>
+    <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#E5E7EB] flex flex-col z-[100] overflow-y-auto animate-slide-right">
+      <div className="px-4 pt-5 pb-4 border-b border-[#F3F4F6] mb-2">
+        <p className="text-sm font-bold text-[#111827] leading-tight mb-1">Gestión de Proyectos</p>
+        <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.08em]">Ingeniería de Sistemas</p>
       </div>
 
-      <nav className="sidebar-est__nav">
+      <nav className="flex flex-col gap-0.5 px-2 py-1 flex-1">
         {NAV_ITEMS.map((item) => {
           const activo = item.id === itemActivo;
           return (
             <button
               key={item.id}
-              className={`sidebar-est__item${activo ? ' sidebar-est__item--activo' : ''}`}
+              className={`relative flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-none font-sans text-[13px] font-medium cursor-pointer text-left transition-all duration-150 w-full hover:translate-x-0.5 ${
+                activo
+                  ? 'text-[#B91C1C] bg-[#FEF2F2] font-semibold'
+                  : 'text-[#374151] bg-transparent hover:bg-[#FEF2F2] hover:text-[#B91C1C]'
+              }`}
               onClick={() => navigate(item.path)}
               aria-current={activo ? 'page' : undefined}
             >
-              <span className="sidebar-est__icono">{item.icono}</span>
-              <span className="sidebar-est__label">{item.label}</span>
-              {activo && <span className="sidebar-est__indicador" aria-hidden="true" />}
+              <span className="flex items-center shrink-0">{item.icono}</span>
+              <span className="flex-1">{item.label}</span>
+              {activo && (
+                <span className="absolute right-[-8px] top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B91C1C] rounded-[3px_0_0_3px]" aria-hidden="true" />
+              )}
             </button>
           );
         })}

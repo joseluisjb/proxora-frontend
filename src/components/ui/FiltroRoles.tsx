@@ -1,5 +1,3 @@
-import '../../styles/admin-ui.css';
-
 type RolFiltro = 'todos' | 'docente' | 'estudiante';
 
 interface FiltroRolesProps {
@@ -15,11 +13,15 @@ const OPCIONES: Array<{ id: RolFiltro; label: string }> = [
 
 export default function FiltroRoles({ rolActivo, onChange }: FiltroRolesProps) {
   return (
-    <div className="filtro-roles">
+    <div className="flex gap-1.5">
       {OPCIONES.map((op) => (
         <button
           key={op.id}
-          className={`filtro-roles__btn ${rolActivo === op.id ? 'filtro-roles__btn--activo' : ''}`}
+          className={`px-3.5 py-2 rounded-full font-sans text-[13px] font-medium cursor-pointer transition-all border-[1.5px] hover:-translate-y-px active:translate-y-0 ${
+            rolActivo === op.id
+              ? 'bg-[#C0392B] text-white border-[#C0392B]'
+              : 'border-[#E0E0E0] bg-white text-[#6B6B6B] hover:border-[#C0392B] hover:text-[#C0392B]'
+          }`}
           onClick={() => onChange(op.id)}
           aria-pressed={rolActivo === op.id}
         >
