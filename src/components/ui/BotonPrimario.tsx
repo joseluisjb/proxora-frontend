@@ -28,7 +28,7 @@ export default function BotonPrimario({ label, onClick, icono, disabled = false,
   return (
     <button
       type={type}
-      className="btn btn-primario"
+      className="inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-lg font-sans text-[13px] font-semibold cursor-pointer border-none bg-[#C0392B] text-white transition-all hover:-translate-y-px hover:bg-[#96281B] hover:shadow-md tracking-[0.02em] disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}

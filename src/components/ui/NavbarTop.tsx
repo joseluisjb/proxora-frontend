@@ -1,15 +1,13 @@
-import './NavbarTop.css';
-
 interface NavbarTopProps {
   onClickPerfil?: () => void;
 }
 
 export default function NavbarTop({ onClickPerfil }: NavbarTopProps) {
   return (
-    <header className="navbar-top">
-      <span className="navbar-top__logo">Proxora</span>
+    <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-[#EBEBEB] flex items-center justify-between px-6 z-[200] animate-fade-in">
+      <span className="text-lg font-bold text-[#C0392B] tracking-[-0.03em]">Proxora</span>
       <button
-        className="navbar-top__avatar"
+        className="w-9 h-9 rounded-full bg-[#F2F2F2] border-none flex items-center justify-center cursor-pointer text-[#3D3D3D] hover:text-[#111111] transition-colors"
         onClick={onClickPerfil}
         aria-label="Ver perfil"
         title="Ver perfil"

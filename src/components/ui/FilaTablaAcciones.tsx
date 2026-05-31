@@ -1,5 +1,3 @@
-import '../../styles/admin-ui.css';
-
 interface FilaTablaAccionesProps {
   onEditar?: () => void;
   onEliminar?: () => void;
@@ -14,10 +12,10 @@ export default function FilaTablaAcciones({
   mostrarEliminar = true,
 }: FilaTablaAccionesProps) {
   return (
-    <div className="fila-acciones">
+    <div className="flex items-center gap-1.5">
       {mostrarEditar && (
         <button
-          className="fila-acciones__btn"
+          className="w-[30px] h-[30px] border-none bg-transparent rounded-md flex items-center justify-center cursor-pointer text-[#6B6B6B] transition-all hover:bg-[#F2F2F2] hover:text-[#111111] hover:scale-110"
           title="Editar"
           onClick={onEditar}
         >
@@ -28,7 +26,7 @@ export default function FilaTablaAcciones({
       )}
       {mostrarEliminar && (
         <button
-          className="fila-acciones__btn fila-acciones__btn--eliminar"
+          className="w-[30px] h-[30px] border-none bg-transparent rounded-md flex items-center justify-center cursor-pointer text-[#6B6B6B] transition-all hover:bg-[#F2F2F2] hover:text-[#C0392B] hover:scale-110"
           title="Eliminar"
           onClick={onEliminar}
         >

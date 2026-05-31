@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import './SidebarAdmin.css';
 
 type ItemActivo = 'usuarios' | 'proyectos' | 'lineas' | 'materias' | 'semestres';
 
@@ -83,28 +82,34 @@ export default function SidebarAdmin({ itemActivo: itemActivoProp }: SidebarAdmi
   const itemActivo = itemActivoProp ?? itemActivoDesdeRuta(pathname);
 
   return (
-    <aside className="sidebar-admin">
-      <div className="sidebar-admin__identidad">
-        <div className="sidebar-admin__avatar">P</div>
+    <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#EBEBEB] flex flex-col pb-4 z-[100] overflow-y-auto animate-slide-right">
+      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-[#F0F0F0]">
+        <div className="w-10 h-10 bg-[#C0392B] text-white rounded-[10px] flex items-center justify-center text-base font-bold shrink-0">P</div>
         <div>
-          <p className="sidebar-admin__nombre">Proxora</p>
-          <p className="sidebar-admin__subtitulo">Admin Panel</p>
+          <p className="text-sm font-bold text-[#111111] leading-tight">Proxora</p>
+          <p className="text-[10px] text-[#6B6B6B] uppercase tracking-[0.06em] mt-0.5">Admin Panel</p>
         </div>
       </div>
 
-      <nav className="sidebar-admin__nav">
+      <nav className="flex flex-col gap-0.5 px-2.5 pt-3 flex-1">
         {NAV_ITEMS.map((item) => {
           const activo = item.id === itemActivo;
           return (
             <button
               key={item.id}
-              className={`sidebar-admin__item ${activo ? 'sidebar-admin__item--activo' : ''}`}
+              className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-none font-sans text-[11px] font-semibold tracking-[0.05em] uppercase cursor-pointer text-left transition-all duration-150 w-full hover:translate-x-0.5 ${
+                activo
+                  ? 'text-[#C0392B] bg-[#FDECEA] font-bold'
+                  : 'text-[#6B6B6B] bg-transparent hover:bg-[#F8F8F8] hover:text-[#C0392B]'
+              }`}
               onClick={() => navigate(item.path)}
               aria-current={activo ? 'page' : undefined}
             >
-              <span className="sidebar-admin__icono">{item.icono}</span>
-              <span className="sidebar-admin__label">{item.label}</span>
-              {activo && <span className="sidebar-admin__indicador" />}
+              <span className="flex items-center shrink-0">{item.icono}</span>
+              <span className="flex-1 leading-tight">{item.label}</span>
+              {activo && (
+                <span className="absolute right-[-10px] top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#C0392B] rounded-[3px_0_0_3px]" />
+              )}
             </button>
           );
         })}
