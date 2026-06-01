@@ -95,24 +95,26 @@ export default function AdminProyectos() {
 
   return (
     <div>
-      <p className="text-[11px] font-bold text-[#C0392B] tracking-[0.1em] uppercase mb-1.5">ADMINISTRACIÓN DEL SISTEMA</p>
+      <p className="text-[11px] font-bold text-[#C0392B] tracking-[0.1em] uppercase mb-1.5 animate-slide-up">ADMINISTRACIÓN DEL SISTEMA</p>
       <PageHeader
         titulo="Proyectos"
         subtitulo="Gestiona y supervisa todos los proyectos de investigación del programa de Ingeniería de Sistemas."
       />
 
-      <FiltrosProyectos
-        valores={filtros}
-        onChange={(campo, valor) => setFiltros((prev) => ({ ...prev, [campo]: valor }))}
-        onFiltrar={() => { setAplicados(filtros); setPagina(1); }}
-        semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
-        materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
-        lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
-      />
+      <div className="animate-slide-up">
+        <FiltrosProyectos
+          valores={filtros}
+          onChange={(campo, valor) => setFiltros((prev) => ({ ...prev, [campo]: valor }))}
+          onFiltrar={() => { setAplicados(filtros); setPagina(1); }}
+          semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
+          materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
+          lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
+        />
+      </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
+      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-slide-up">
         {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
+          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3 animate-scale-in" role="alert">
             <span className="flex-1">{error}</span>
             <button onClick={() => cargarProyectos(aplicados, pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
           </div>
@@ -135,12 +137,12 @@ export default function AdminProyectos() {
               ) : proyectos.length === 0 ? (
                 <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No hay proyectos registrados</p></div></td></tr>
               ) : (
-                proyectos.map((proy) => {
+                proyectos.map((proy, index) => {
                   const director = proy.directores[0]
                     ? `${proy.directores[0].nombre} ${proy.directores[0].apellido}${proy.directores.length > 1 ? ` y ${proy.directores.length - 1} más` : ''}`
                     : '—';
                   return (
-                    <tr key={proy.id} className="hover:bg-[#F8F8F8]">
+                    <tr key={proy.id} className="hover:bg-[#F8F8F8] animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <td className={tdCls}>
                         <p className="text-[13px] font-medium text-[#111111] leading-tight">{proy.titulo}</p>
                         <p className="text-[11px] mt-0.5">

@@ -54,6 +54,8 @@ export interface LineaResumen {
   nombre: string
   descripcion: string | null
   activa: boolean
+  creadoPor: string | null
+  creadoEn: string
 }
 
 export interface ProyectoResponse {
@@ -67,6 +69,7 @@ export interface ProyectoResponse {
   registradoPor: UsuarioResumen
   integrantes: UsuarioResumen[]
   directores: UsuarioResumen[]
+  evaluadores: UsuarioResumen[]
   lineas: LineaResumen[]
   creadoEn: string
   actualizadoEn: string
@@ -85,10 +88,10 @@ export interface RegistroRequest {
 }
 
 export interface LoginResponse {
-  id?: string
+  id: string
   token: string
   rol: 'administrador' | 'docente' | 'estudiante' | 'invitado'
-  nombre: string
+  nombreCompleto: string
 }
 
 export interface ProyectoCreateRequest {
@@ -102,6 +105,7 @@ export interface ProyectoCreateRequest {
   integrantesIds: string[]
   directoresIds: string[]
   lineasIds: string[]
+  evaluadoresIds: string[]
 }
 
 export interface VersionDocumentoCreateRequest {
@@ -117,6 +121,13 @@ export interface VersionDocumentoCreateRequest {
 export interface EvaluadorAsignacionRequest {
   idDocente: string
   idAsignadoPor: string
+}
+
+export interface UsuarioCreateRequest {
+  nombre: string
+  apellido: string
+  correo: string
+  contrasena: string
 }
 
 export interface SemestreRequest {

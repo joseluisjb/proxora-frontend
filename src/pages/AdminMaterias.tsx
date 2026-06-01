@@ -67,9 +67,9 @@ export default function AdminMaterias() {
         onAccion={() => navigate('/admin/materias/nueva')}
       />
 
-      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
+      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-slide-up">
         {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
+          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3 animate-scale-in" role="alert">
             <span className="flex-1">{error}</span>
             <button onClick={() => cargarMaterias(pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
           </div>
@@ -90,11 +90,11 @@ export default function AdminMaterias() {
               ) : materias.length === 0 ? (
                 <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">No hay materias registradas</div></td></tr>
               ) : (
-                materias.map((mat) => {
+                materias.map((mat, index) => {
                   const letras = mat.nombre.substring(0, 2).toUpperCase();
                   const color = colorPorNombre(mat.nombre);
                   return (
-                    <tr key={mat.id} className="hover:bg-[#F8F8F8]">
+                    <tr key={mat.id} className="hover:bg-[#F8F8F8] animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <td className={tdCls}>
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: color.bg, color: color.text }}>

@@ -51,7 +51,7 @@ export default function FiltrosProyectos({
   lineas,
 }: FiltrosProyectosProps) {
   return (
-    <div className="flex flex-wrap gap-2.5 items-end p-4 bg-white rounded-lg border border-[#EBEBEB] mb-5 animate-fade-in">
+    <div className="flex flex-wrap gap-2.5 items-end p-4 bg-white rounded-lg border border-[#EBEBEB] mb-5">
       <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 180 }}>
         <BarraBusqueda
           placeholder="Título o descripción..."

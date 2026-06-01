@@ -55,8 +55,8 @@ export default function AdminSemestres() {
         onAccion={() => navigate('/admin/semestres/nuevo')}
       />
 
-      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
-        <div className="flex items-center justify-between px-4 py-4 border-b border-[#F0F0F0]">
+      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-slide-up">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-[#F0F0F0] animate-fade-in">
           <div className="flex items-center gap-2 text-sm font-semibold text-[#111111]">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#C0392B" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 6h18M3 14h18M3 18h18" />
@@ -66,7 +66,7 @@ export default function AdminSemestres() {
         </div>
 
         {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
+          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3 animate-scale-in" role="alert">
             <span className="flex-1">{error}</span>
             <button onClick={() => cargarSemestres(pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
           </div>
@@ -88,8 +88,8 @@ export default function AdminSemestres() {
               ) : semestres.length === 0 ? (
                 <tr><td colSpan={4}><div className="text-center py-12 text-[#6B6B6B] text-sm">No hay semestres registrados</div></td></tr>
               ) : (
-                semestres.map((sem) => (
-                  <tr key={sem.id} className="hover:bg-[#F8F8F8]">
+                semestres.map((sem, index) => (
+                  <tr key={sem.id} className="hover:bg-[#F8F8F8] animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                     <td className={tdCls}>
                       <div className="flex items-center gap-2">
                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={sem.activo ? '#C0392B' : '#BBBBBB'} strokeWidth={2}>

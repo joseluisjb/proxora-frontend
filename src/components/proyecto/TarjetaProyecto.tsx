@@ -8,6 +8,7 @@ export interface TarjetaProyectoProps {
   mostrarIntegrantes?: boolean
   onVerProyecto?: (id: string) => void
   modo?: 'grilla' | 'lista'
+  animationDelay?: number
 }
 
 type EstadoProyecto = ProyectoResponse['estado'];
@@ -51,6 +52,7 @@ export function TarjetaProyecto({
   mostrarIntegrantes = true,
   onVerProyecto,
   modo = 'grilla',
+  animationDelay,
 }: TarjetaProyectoProps) {
   const navigate = useNavigate();
   const estadoCfg = ESTADO_CONFIG[proyecto.estado];
@@ -65,7 +67,10 @@ export function TarjetaProyecto({
   };
 
   return (
-    <article className="bg-white border border-[#E5E7EB] rounded-xl p-5 flex flex-col font-sans transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-[#D1D5DB]">
+    <article
+      className="bg-white border border-[#E5E7EB] rounded-xl p-5 flex flex-col font-sans transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-[#D1D5DB] animate-scale-in"
+      style={animationDelay !== undefined ? { animationDelay: `${animationDelay}ms` } : undefined}
+    >
       <div className="flex items-center justify-between mb-3">
         <span className={`text-xs font-semibold px-2.5 py-[3px] rounded-full ${estadoCfg.clases}`}>{estadoCfg.label}</span>
         <span className="text-xs text-[#9CA3AF]">{formatearFechaCorta(proyecto.creadoEn)}</span>
