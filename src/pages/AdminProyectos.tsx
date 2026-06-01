@@ -9,6 +9,7 @@ import BadgeEstado from '../components/ui/BadgeEstado';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import FiltrosProyectos from '../components/ui/FiltrosProyectos';
 import Paginacion from '../components/ui/Paginacion';
+import Modal from '../components/ui/Modal';
 
 interface FiltrosValores {
   busqueda: string;
@@ -52,6 +53,9 @@ export default function AdminProyectos() {
   const [materias, setMaterias] = useState<MateriaResponse[]>([]);
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([]);
 
+  const [proyectoAEliminar, setProyectoAEliminar] = useState<ProyectoResponse | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
   useEffect(() => {
     semestresService.listar({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {});
     materiasService.listar({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {});
@@ -84,10 +88,21 @@ export default function AdminProyectos() {
 
   useEffect(() => { cargarProyectos(aplicados, pagina); }, [aplicados, pagina, cargarProyectos]);
 
-  const handleEliminar = async (proyecto: ProyectoResponse) => {
-    if (!window.confirm(`¿Eliminar el proyecto "${proyecto.titulo}"? Esta acción no se puede deshacer.`)) return;
-    try { await proyectosService.eliminar(proyecto.id); await cargarProyectos(aplicados, pagina); }
-    catch { setError('No se pudo eliminar el proyecto. Intenta de nuevo.'); }
+  const handleEliminar = (proyecto: ProyectoResponse) => setProyectoAEliminar(proyecto);
+
+  const confirmarEliminar = async () => {
+    if (!proyectoAEliminar) return;
+    setEliminando(true);
+    try {
+      await proyectosService.eliminar(proyectoAEliminar.id);
+      setProyectoAEliminar(null);
+      await cargarProyectos(aplicados, pagina);
+    } catch {
+      setError('No se pudo eliminar el proyecto. Intenta de nuevo.');
+      setProyectoAEliminar(null);
+    } finally {
+      setEliminando(false);
+    }
   };
 
   const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
@@ -169,6 +184,35 @@ export default function AdminProyectos() {
 
         <Paginacion paginaActual={pagina} totalPaginas={Math.max(totalPaginas, 1)} totalRegistros={totalElementos} registrosPorPagina={REGISTROS_POR_PAGINA} labelEntidad="proyectos" onCambiarPagina={setPagina} />
       </div>
+
+      <Modal
+        open={proyectoAEliminar !== null}
+        onClose={() => setProyectoAEliminar(null)}
+        title="Eliminar proyecto"
+        size="sm"
+      >
+        <div className="flex flex-col gap-5">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-9 h-9 rounded-full bg-[#FEE2E2] flex items-center justify-center">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#DC2626" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[13px] text-[#111111] leading-relaxed">
+                ¿Eliminar el proyecto <span className="font-semibold">"{proyectoAEliminar?.titulo}"</span>?
+              </p>
+              <p className="text-xs text-[#6B6B6B] mt-1">Esta acción no se puede deshacer.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setProyectoAEliminar(null)} disabled={eliminando} className="h-9 px-4 text-sm text-[#444] border border-[#E0E0E0] rounded-lg hover:bg-[#F2F2F2] cursor-pointer disabled:opacity-50">Cancelar</button>
+            <button type="button" onClick={confirmarEliminar} disabled={eliminando} className="h-9 px-4 text-sm font-semibold bg-[#DC2626] text-white rounded-lg hover:bg-[#B91C1C] cursor-pointer disabled:opacity-50 transition-colors">
+              {eliminando ? 'Eliminando...' : 'Eliminar'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -55,7 +55,7 @@ export function TarjetaProyecto({
   animationDelay,
 }: TarjetaProyectoProps) {
   const navigate = useNavigate();
-  const estadoCfg = ESTADO_CONFIG[proyecto.estado];
+  const estadoCfg = ESTADO_CONFIG[proyecto.estado] ?? { label: proyecto.estado, clases: 'bg-[#F3F4F6] text-[#374151]' };
   const primeraLinea = proyecto.lineas[0]?.nombre ?? '';
 
   const handleVer = () => {
@@ -115,7 +115,7 @@ export function TarjetaProyecto({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            <span className="text-[#9CA3AF]">{VISIBILIDAD_LABEL[proyecto.visibilidad]}</span>
+            <span className="text-[#9CA3AF]">{VISIBILIDAD_LABEL[proyecto.visibilidad] ?? proyecto.visibilidad}</span>
           </div>
         )}
       </div>

@@ -58,10 +58,9 @@ export default function RegistrarProyecto() {
   const [evaluadoresSeleccionados, setEvaluadoresSeleccionados] = useState<UsuarioResponse[]>([]);
 
   const [busquedaIntegrantes, setBusquedaIntegrantes] = useState('');
-  const [resultadosBusquedaIntegrantes, setResultadosBusquedaIntegrantes] = useState<UsuarioResponse[]>([]);
   const [mostrandoDropdownIntegrantes, setMostrandoDropdownIntegrantes] = useState(false);
-  const timerIntegrantes = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [todosEstudiantes, setTodosEstudiantes] = useState<UsuarioResponse[]>([]);
   const [todoDocentes, setTodoDocentes] = useState<UsuarioResponse[]>([]);
   const [busquedaDirector, setBusquedaDirector] = useState('');
   const [busquedaEvaluador, setBusquedaEvaluador] = useState('');
@@ -96,21 +95,23 @@ export default function RegistrarProyecto() {
     lineasService.listarActivas({ size: 100 })
       .then((r) => setTodasLineas(r.content))
       .catch(() => lineasService.listar({ size: 100 }).then((r) => setTodasLineas(r.content)).catch(() => {}));
-    (async () => {
+    const cargarPorRol = async (rol: string, setter: (u: UsuarioResponse[]) => void) => {
       try {
-        const primera = await usuariosService.listarPorRol('docente', { page: 0, size: 50 });
+        const primera = await usuariosService.listarPorRol(rol, { page: 0, size: 50 });
         const acumulados = [...primera.content];
         if (primera.totalPages > 1) {
           const paginas = await Promise.all(
             Array.from({ length: primera.totalPages - 1 }, (_, i) =>
-              usuariosService.listarPorRol('docente', { page: i + 1, size: 50 })
+              usuariosService.listarPorRol(rol, { page: i + 1, size: 50 })
             )
           );
           paginas.forEach((p) => acumulados.push(...p.content));
         }
-        setTodoDocentes(acumulados);
+        setter(acumulados);
       } catch {}
-    })();
+    };
+    cargarPorRol('docente', setTodoDocentes);
+    cargarPorRol('estudiante', setTodosEstudiantes);
   }, []);
 
   useEffect(() => {
@@ -119,15 +120,6 @@ export default function RegistrarProyecto() {
     setIntegrantesSeleccionados([integrante]);
   }, [usuario]);
 
-  useEffect(() => {
-    if (busquedaIntegrantes.length < 3) { setResultadosBusquedaIntegrantes([]); setMostrandoDropdownIntegrantes(false); return; }
-    if (timerIntegrantes.current) clearTimeout(timerIntegrantes.current);
-    timerIntegrantes.current = setTimeout(async () => {
-      try { const r = await usuariosService.buscar(busquedaIntegrantes, { size: 10 }); setResultadosBusquedaIntegrantes(r.content); setMostrandoDropdownIntegrantes(true); }
-      catch { setResultadosBusquedaIntegrantes([]); }
-    }, 400);
-    return () => { if (timerIntegrantes.current) clearTimeout(timerIntegrantes.current); };
-  }, [busquedaIntegrantes]);
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -185,6 +177,13 @@ export default function RegistrarProyecto() {
       else setErrores({ general: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
     } finally { setRegistrando(false); }
   };
+
+  const resultadosIntegrantes = todosEstudiantes.filter((u) => {
+    if (integrantesSeleccionados.some((i) => i.id === u.id)) return false;
+    if (!busquedaIntegrantes.trim()) return true;
+    const t = busquedaIntegrantes.toLowerCase();
+    return `${u.nombre} ${u.apellido}`.toLowerCase().includes(t) || u.correo.toLowerCase().includes(t);
+  });
 
   const resultadosDirectores = todoDocentes.filter((d) => {
     if (directoresSeleccionados.some((dir) => dir.id === d.id)) return false;
@@ -271,14 +270,11 @@ export default function RegistrarProyecto() {
             <div className="mb-5">
               <p className={labelCls}>INTEGRANTES DEL GRUPO</p>
               {buscadorWrap(refDropdownIntegrantes, <>
-                <div className="flex gap-2">
-                  <input type="text" className={`${inputCls()} flex-1`} placeholder="Buscar por nombre o correo..." value={busquedaIntegrantes} onChange={(e) => setBusquedaIntegrantes(e.target.value)} disabled={integrantesSeleccionados.length >= 3} aria-label="Buscar integrante" />
-                  <button type="button" className="px-3.5 py-2 bg-[#F3F4F6] text-[#374151] border border-[#E5E7EB] rounded-lg font-sans text-[13px] font-semibold cursor-pointer whitespace-nowrap hover:bg-[#E5E7EB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0" disabled={integrantesSeleccionados.length >= 3}>Agregar Miembro</button>
-                </div>
+                <input type="text" className={inputCls()} placeholder="Buscar por nombre o correo..." value={busquedaIntegrantes} onChange={(e) => { setBusquedaIntegrantes(e.target.value); setMostrandoDropdownIntegrantes(true); }} onFocus={() => setMostrandoDropdownIntegrantes(true)} disabled={integrantesSeleccionados.length >= 3} aria-label="Buscar integrante" />
                 {integrantesSeleccionados.length >= 3 && <p className="text-xs text-[#B91C1C] mt-1">Máximo 3 integrantes por grupo</p>}
-                {mostrandoDropdownIntegrantes && resultadosBusquedaIntegrantes.length > 0 && (
+                {mostrandoDropdownIntegrantes && resultadosIntegrantes.length > 0 && (
                   <div className={dropdownCls} role="listbox">
-                    {resultadosBusquedaIntegrantes.map((u) => (
+                    {resultadosIntegrantes.map((u) => (
                       <button key={u.id} type="button" className={dropdownItemCls} onClick={() => handleAddIntegrante(u)} role="option">
                         <AvatarIniciales nombre={u.nombre} apellido={u.apellido} tamaño="sm" />
                         <div className="flex flex-col gap-px flex-1 min-w-0">

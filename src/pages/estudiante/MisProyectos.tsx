@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ProyectoResponse } from '../../types/api.types';
 import { proyectosService } from '../../services/proyectos.service';
 import { useAuth } from '../../context/AuthContext';
@@ -10,6 +10,7 @@ const PAGINA_SIZE = 4;
 
 export default function MisProyectos() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { usuario } = useAuth();
 
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([]);
@@ -18,6 +19,7 @@ export default function MisProyectos() {
   const [paginaActual, setPaginaActual] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalElementos, setTotalElementos] = useState(0);
+  const [registradoExito, setRegistradoExito] = useState(() => searchParams.get('registrado') === 'true');
 
   const cargarProyectos = useCallback(async (pagina: number) => {
     if (!usuario?.id) return;
@@ -48,8 +50,36 @@ export default function MisProyectos() {
     cargarProyectos(paginaActual);
   }, [paginaActual, cargarProyectos]);
 
+  useEffect(() => {
+    if (registradoExito) {
+      const params = new URLSearchParams(searchParams);
+      params.delete('registrado');
+      setSearchParams(params, { replace: true });
+      const t = setTimeout(() => setRegistradoExito(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [registradoExito, searchParams, setSearchParams]);
+
   return (
     <>
+      {registradoExito && (
+        <div
+          role="alert"
+          className="flex items-center gap-3 bg-[#F0FDF4] border border-[#BBF7D0] text-[#166534] px-4 py-3 rounded-lg text-sm mb-5 animate-slide-up"
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="shrink-0" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>¡Proyecto registrado exitosamente!</span>
+          <button
+            type="button"
+            onClick={() => setRegistradoExito(false)}
+            className="ml-auto text-[#166534] bg-transparent border-none cursor-pointer text-lg leading-none opacity-70 hover:opacity-100"
+            aria-label="Cerrar notificación"
+          >×</button>
+        </div>
+      )}
+
       <div className="mb-6 animate-slide-up">
         <h1 className="text-[28px] font-bold text-[#111827] mb-1.5 tracking-[-0.01em]">Mis Proyectos</h1>
         <p className="text-sm text-[#6B7280] max-w-[480px]">

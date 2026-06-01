@@ -118,10 +118,6 @@ export interface VersionDocumentoCreateRequest {
   idSubidoPor: string
 }
 
-export interface EvaluadorAsignacionRequest {
-  idDocente: string
-  idAsignadoPor: string
-}
 
 export interface UsuarioCreateRequest {
   nombre: string
