@@ -55,15 +55,11 @@ export const proyectosService = {
     params: { etiquetaVersion: string; idTipo: number; idSubidoPor: string }
   ) => {
     const formData = new FormData()
-    formData.append('file', archivo)
+    formData.append('archivo', archivo)
     return api
       .post<VersionDocumentoResponse>(`/proyectos/${idProyecto}/versiones/upload`, formData, {
-        params,
-        headers: { 'Content-Type': 'multipart/form-data' },
+        params: { idProyecto, ...params },
       })
       .then((r) => r.data)
   },
-
-  asignarEvaluador: (idProyecto: string, data: EvaluadorAsignacionRequest) =>
-    api.post(`/proyectos/${idProyecto}/evaluaciones/evaluadores`, data).then((r) => r.data),
 }
