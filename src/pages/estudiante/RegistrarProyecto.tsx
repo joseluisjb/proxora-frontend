@@ -7,7 +7,6 @@ import { materiasService } from '../../services/materias.service';
 import { lineasService } from '../../services/lineas.service';
 import { usuariosService } from '../../services/usuarios.service';
 import { useAuth } from '../../context/AuthContext';
-import LayoutEstudiante from '../../components/layout/LayoutEstudiante';
 import AvatarIniciales from '../../components/ui/AvatarIniciales';
 
 const TIPOS_DOCUMENTO = [
@@ -59,10 +58,9 @@ export default function RegistrarProyecto() {
   const [evaluadoresSeleccionados, setEvaluadoresSeleccionados] = useState<UsuarioResponse[]>([]);
 
   const [busquedaIntegrantes, setBusquedaIntegrantes] = useState('');
-  const [resultadosBusquedaIntegrantes, setResultadosBusquedaIntegrantes] = useState<UsuarioResponse[]>([]);
   const [mostrandoDropdownIntegrantes, setMostrandoDropdownIntegrantes] = useState(false);
-  const timerIntegrantes = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [todosEstudiantes, setTodosEstudiantes] = useState<UsuarioResponse[]>([]);
   const [todoDocentes, setTodoDocentes] = useState<UsuarioResponse[]>([]);
   const [busquedaDirector, setBusquedaDirector] = useState('');
   const [busquedaEvaluador, setBusquedaEvaluador] = useState('');
@@ -80,7 +78,6 @@ export default function RegistrarProyecto() {
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState(false);
   const [errorArchivo, setErrorArchivo] = useState('');
-  const [advertenciaEvaluadores, setAdvertenciaEvaluadores] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refDropdownIntegrantes = useRef<HTMLDivElement>(null);
@@ -98,7 +95,23 @@ export default function RegistrarProyecto() {
     lineasService.listarActivas({ size: 100 })
       .then((r) => setTodasLineas(r.content))
       .catch(() => lineasService.listar({ size: 100 }).then((r) => setTodasLineas(r.content)).catch(() => {}));
-    usuariosService.listarPorRol('docente', { size: 50 }).then((r) => setTodoDocentes(r.content)).catch(() => {});
+    const cargarPorRol = async (rol: string, setter: (u: UsuarioResponse[]) => void) => {
+      try {
+        const primera = await usuariosService.listarPorRol(rol, { page: 0, size: 50 });
+        const acumulados = [...primera.content];
+        if (primera.totalPages > 1) {
+          const paginas = await Promise.all(
+            Array.from({ length: primera.totalPages - 1 }, (_, i) =>
+              usuariosService.listarPorRol(rol, { page: i + 1, size: 50 })
+            )
+          );
+          paginas.forEach((p) => acumulados.push(...p.content));
+        }
+        setter(acumulados);
+      } catch {}
+    };
+    cargarPorRol('docente', setTodoDocentes);
+    cargarPorRol('estudiante', setTodosEstudiantes);
   }, []);
 
   useEffect(() => {
@@ -107,15 +120,6 @@ export default function RegistrarProyecto() {
     setIntegrantesSeleccionados([integrante]);
   }, [usuario]);
 
-  useEffect(() => {
-    if (busquedaIntegrantes.length < 3) { setResultadosBusquedaIntegrantes([]); setMostrandoDropdownIntegrantes(false); return; }
-    if (timerIntegrantes.current) clearTimeout(timerIntegrantes.current);
-    timerIntegrantes.current = setTimeout(async () => {
-      try { const r = await usuariosService.buscar(busquedaIntegrantes, { size: 10 }); setResultadosBusquedaIntegrantes(r.content); setMostrandoDropdownIntegrantes(true); }
-      catch { setResultadosBusquedaIntegrantes([]); }
-    }, 400);
-    return () => { if (timerIntegrantes.current) clearTimeout(timerIntegrantes.current); };
-  }, [busquedaIntegrantes]);
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -138,7 +142,7 @@ export default function RegistrarProyecto() {
   const handleRemoveIntegrante = (id: string) => { if (usuario?.id && id === usuario.id) return; setIntegrantesSeleccionados((prev) => prev.filter((i) => i.id !== id)); };
   const handleAddDirector = (u: UsuarioResponse) => { if (directoresSeleccionados.some((d) => d.id === u.id)) return; setDirectoresSeleccionados((prev) => [...prev, u]); setBusquedaDirector(''); setMostrandoDropdownDocentes(false); };
   const handleRemoveDirector = (id: string) => setDirectoresSeleccionados((prev) => prev.filter((d) => d.id !== id));
-  const handleAddEvaluador = (u: UsuarioResponse) => { if (directoresSeleccionados.some((d) => d.id === u.id) || evaluadoresSeleccionados.some((e) => e.id === u.id)) return; setEvaluadoresSeleccionados((prev) => [...prev, u]); setBusquedaEvaluador(''); setMostrandoDropdownEvaluadores(false); };
+  const handleAddEvaluador = (u: UsuarioResponse) => { if (evaluadoresSeleccionados.some((e) => e.id === u.id)) return; setEvaluadoresSeleccionados((prev) => [...prev, u]); setBusquedaEvaluador(''); setMostrandoDropdownEvaluadores(false); };
   const handleRemoveEvaluador = (id: string) => setEvaluadoresSeleccionados((prev) => prev.filter((e) => e.id !== id));
   const handleAddLinea = (id: string) => { if (lineasIds.includes(id)) return; setLineasIds((prev) => [...prev, id]); setBusquedaLinea(''); setMostrandoDropdownLineas(false); };
   const handleRemoveLinea = (id: string) => setLineasIds((prev) => prev.filter((l) => l !== id));
@@ -160,21 +164,13 @@ export default function RegistrarProyecto() {
   const handleSubmit = async () => {
     const errs = validar();
     if (Object.keys(errs).length > 0) { setErrores(errs); return; }
-    setErrores({}); setRegistrando(true); setAdvertenciaEvaluadores('');
+    setErrores({}); setRegistrando(true);
     try {
-      const proyecto = await proyectosService.crear({ titulo: titulo.trim(), resumen: resumen.trim(), idSemestre: idSemestre || null, idMateria: idMateria || null, idEstado: 1, idVisibilidad: idVisibilidad, idRegistradoPor: usuario?.id ?? '', integrantesIds: integrantesSeleccionados.map((i) => i.id), directoresIds: directoresSeleccionados.map((d) => d.id), lineasIds: lineasIds });
+      const proyecto = await proyectosService.crear({ titulo: titulo.trim(), resumen: resumen.trim(), idSemestre: idSemestre || null, idMateria: idMateria || null, idEstado: 1, idVisibilidad: idVisibilidad, idRegistradoPor: usuario?.id ?? '', integrantesIds: integrantesSeleccionados.map((i) => i.id), directoresIds: directoresSeleccionados.map((d) => d.id), lineasIds: lineasIds, evaluadoresIds: evaluadoresSeleccionados.map((e) => e.id) });
       if (documento.archivo) {
-        await proyectosService.crearVersion(proyecto.id, { idTipo: documento.idTipo, etiquetaVersion: documento.etiquetaVersion.trim(), rutaS3: `proyectos/${proyecto.id}/versiones/${crypto.randomUUID()}/${documento.archivo.name}`, nombreArchivo: documento.archivo.name, tamanoBytes: documento.archivo.size, mimeType: documento.archivo.type, idSubidoPor: usuario?.id ?? '' });
+        await proyectosService.subirVersion(proyecto.id, documento.archivo, { etiquetaVersion: documento.etiquetaVersion.trim(), idTipo: Number(documento.idTipo), idSubidoPor: usuario?.id ?? '' });
       }
-      if (evaluadoresSeleccionados.length > 0) {
-        let fallaron = 0;
-        for (const evaluador of evaluadoresSeleccionados) {
-          try { await proyectosService.asignarEvaluador(proyecto.id, { idDocente: evaluador.id, idAsignadoPor: usuario?.id ?? '' }); }
-          catch { fallaron++; }
-        }
-        if (fallaron > 0) { setAdvertenciaEvaluadores('El proyecto fue registrado pero algunos evaluadores no pudieron ser asignados.'); return; }
-      }
-      navigate('/estudiante/dashboard?registrado=true');
+      navigate('/estudiante/mis-proyectos?registrado=true');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
       if (axiosErr.response?.status === 400 || axiosErr.response?.status === 404) setErrores({ general: 'Error al registrar el proyecto. Verifica los datos e intenta de nuevo.' });
@@ -182,8 +178,25 @@ export default function RegistrarProyecto() {
     } finally { setRegistrando(false); }
   };
 
-  const resultadosDirectores = todoDocentes.filter((d) => { if (!busquedaDirector.trim()) return false; const t = busquedaDirector.toLowerCase(); return `${d.nombre} ${d.apellido}`.toLowerCase().includes(t) || d.correo.toLowerCase().includes(t); });
-  const resultadosEvaluadores = todoDocentes.filter((d) => { if (!busquedaEvaluador.trim()) return false; if (directoresSeleccionados.some((dir) => dir.id === d.id)) return false; const t = busquedaEvaluador.toLowerCase(); return `${d.nombre} ${d.apellido}`.toLowerCase().includes(t) || d.correo.toLowerCase().includes(t); });
+  const resultadosIntegrantes = todosEstudiantes.filter((u) => {
+    if (integrantesSeleccionados.some((i) => i.id === u.id)) return false;
+    if (!busquedaIntegrantes.trim()) return true;
+    const t = busquedaIntegrantes.toLowerCase();
+    return `${u.nombre} ${u.apellido}`.toLowerCase().includes(t) || u.correo.toLowerCase().includes(t);
+  });
+
+  const resultadosDirectores = todoDocentes.filter((d) => {
+    if (directoresSeleccionados.some((dir) => dir.id === d.id)) return false;
+    if (!busquedaDirector.trim()) return true;
+    const t = busquedaDirector.toLowerCase();
+    return `${d.nombre} ${d.apellido}`.toLowerCase().includes(t) || d.correo.toLowerCase().includes(t);
+  });
+  const resultadosEvaluadores = todoDocentes.filter((d) => {
+    if (evaluadoresSeleccionados.some((e) => e.id === d.id)) return false;
+    if (!busquedaEvaluador.trim()) return true;
+    const t = busquedaEvaluador.toLowerCase();
+    return `${d.nombre} ${d.apellido}`.toLowerCase().includes(t) || d.correo.toLowerCase().includes(t);
+  });
   const lineasFiltradas = todasLineas.filter((l) => { if (!busquedaLinea.trim()) return true; return l.nombre.toLowerCase().includes(busquedaLinea.toLowerCase()); }).filter((l) => !lineasIds.includes(l.id));
   const lineasSeleccionadas = todasLineas.filter((l) => lineasIds.includes(l.id));
 
@@ -207,7 +220,7 @@ export default function RegistrarProyecto() {
   );
 
   return (
-    <LayoutEstudiante itemActivo="registrar">
+    <>
       <div className="mb-6 animate-slide-up">
         <h1 className="text-[28px] font-bold text-[#111827] mb-1.5 tracking-[-0.01em]">Registrar Nuevo Proyecto</h1>
         <p className="text-sm text-[#6B7280] max-w-[560px]">
@@ -216,11 +229,10 @@ export default function RegistrarProyecto() {
       </div>
 
       {errores.general && <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] px-4 py-3 rounded-lg text-sm mb-4" role="alert">{errores.general}</div>}
-      {advertenciaEvaluadores && <div className="bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] px-4 py-3 rounded-lg text-sm mb-4" role="alert">{advertenciaEvaluadores}</div>}
 
       <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1">
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 animate-slide-up">
           {/* Detalles */}
           <div className={cardCls}>
             <div className={cardHeaderCls}>
@@ -258,14 +270,11 @@ export default function RegistrarProyecto() {
             <div className="mb-5">
               <p className={labelCls}>INTEGRANTES DEL GRUPO</p>
               {buscadorWrap(refDropdownIntegrantes, <>
-                <div className="flex gap-2">
-                  <input type="text" className={`${inputCls()} flex-1`} placeholder="Buscar por nombre o correo..." value={busquedaIntegrantes} onChange={(e) => setBusquedaIntegrantes(e.target.value)} disabled={integrantesSeleccionados.length >= 3} aria-label="Buscar integrante" />
-                  <button type="button" className="px-3.5 py-2 bg-[#F3F4F6] text-[#374151] border border-[#E5E7EB] rounded-lg font-sans text-[13px] font-semibold cursor-pointer whitespace-nowrap hover:bg-[#E5E7EB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0" disabled={integrantesSeleccionados.length >= 3}>Agregar Miembro</button>
-                </div>
+                <input type="text" className={inputCls()} placeholder="Buscar por nombre o correo..." value={busquedaIntegrantes} onChange={(e) => { setBusquedaIntegrantes(e.target.value); setMostrandoDropdownIntegrantes(true); }} onFocus={() => setMostrandoDropdownIntegrantes(true)} disabled={integrantesSeleccionados.length >= 3} aria-label="Buscar integrante" />
                 {integrantesSeleccionados.length >= 3 && <p className="text-xs text-[#B91C1C] mt-1">Máximo 3 integrantes por grupo</p>}
-                {mostrandoDropdownIntegrantes && resultadosBusquedaIntegrantes.length > 0 && (
+                {mostrandoDropdownIntegrantes && resultadosIntegrantes.length > 0 && (
                   <div className={dropdownCls} role="listbox">
-                    {resultadosBusquedaIntegrantes.map((u) => (
+                    {resultadosIntegrantes.map((u) => (
                       <button key={u.id} type="button" className={dropdownItemCls} onClick={() => handleAddIntegrante(u)} role="option">
                         <AvatarIniciales nombre={u.nombre} apellido={u.apellido} tamaño="sm" />
                         <div className="flex flex-col gap-px flex-1 min-w-0">
@@ -307,7 +316,7 @@ export default function RegistrarProyecto() {
               <p className={labelCls}>DIRECTOR / CO-DIRECTOR</p>
               {buscadorWrap(refDropdownDirector, <>
                 <div className="flex gap-2">
-                  <input type="text" className={`${inputCls()} flex-1`} placeholder="Buscar director..." value={busquedaDirector} onChange={(e) => { setBusquedaDirector(e.target.value); setMostrandoDropdownDocentes(e.target.value.length > 0); }} aria-label="Buscar director" />
+                  <input type="text" className={`${inputCls()} flex-1`} placeholder="Buscar director..." value={busquedaDirector} onChange={(e) => { setBusquedaDirector(e.target.value); setMostrandoDropdownDocentes(true); }} onFocus={() => setMostrandoDropdownDocentes(true)} aria-label="Buscar director" />
                   <button type="button" className="px-3.5 py-2 bg-[#F3F4F6] text-[#374151] border border-[#E5E7EB] rounded-lg font-sans text-[13px] font-semibold cursor-pointer whitespace-nowrap hover:bg-[#E5E7EB] transition-colors shrink-0">Agregar</button>
                 </div>
                 {mostrandoDropdownDocentes && resultadosDirectores.length > 0 && (
@@ -348,7 +357,7 @@ export default function RegistrarProyecto() {
               <p className={labelCls}>EVALUADORES</p>
               {buscadorWrap(refDropdownEvaluador, <>
                 <div className="flex gap-2">
-                  <input type="text" className={`${inputCls()} flex-1`} placeholder="Buscar evaluador..." value={busquedaEvaluador} onChange={(e) => { setBusquedaEvaluador(e.target.value); setMostrandoDropdownEvaluadores(e.target.value.length > 0); }} aria-label="Buscar evaluador" />
+                  <input type="text" className={`${inputCls()} flex-1`} placeholder="Buscar evaluador..." value={busquedaEvaluador} onChange={(e) => { setBusquedaEvaluador(e.target.value); setMostrandoDropdownEvaluadores(true); }} onFocus={() => setMostrandoDropdownEvaluadores(true)} aria-label="Buscar evaluador" />
                   <button type="button" className="px-3.5 py-2 bg-[#F3F4F6] text-[#374151] border border-[#E5E7EB] rounded-lg font-sans text-[13px] font-semibold cursor-pointer whitespace-nowrap hover:bg-[#E5E7EB] transition-colors shrink-0">Agregar</button>
                 </div>
                 {mostrandoDropdownEvaluadores && resultadosEvaluadores.length > 0 && (
@@ -364,7 +373,7 @@ export default function RegistrarProyecto() {
                     ))}
                   </div>
                 )}
-                {mostrandoDropdownEvaluadores && busquedaEvaluador.trim() && resultadosEvaluadores.length === 0 && (
+                {mostrandoDropdownEvaluadores && resultadosEvaluadores.length === 0 && (
                   <div className={dropdownCls}><p className="px-3.5 py-3 text-[13px] text-[#9CA3AF] m-0">No se encontraron evaluadores disponibles</p></div>
                 )}
               </>)}
@@ -441,7 +450,7 @@ export default function RegistrarProyecto() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 animate-slide-up [animation-delay:150ms]">
           {/* Categorización */}
           <div className={cardCls}>
             <div className={cardHeaderCls}>
@@ -504,12 +513,12 @@ export default function RegistrarProyecto() {
         </div>
       </div>
 
-      <div className="flex justify-end items-center gap-3 mt-6 pt-4">
+      <div className="flex justify-end items-center gap-3 mt-6 pt-4 animate-fade-in [animation-delay:300ms]">
         <button type="button" className="px-5 py-2.5 bg-white text-[#374151] border border-[#D1D5DB] rounded-lg font-sans text-sm font-medium cursor-pointer transition-colors hover:bg-[#F9FAFB] disabled:opacity-60 disabled:cursor-not-allowed" onClick={() => navigate('/estudiante/dashboard')} disabled={registrando}>Cancelar</button>
         <button type="button" className="inline-flex items-center gap-1.5 px-[22px] py-2.5 bg-[#B91C1C] text-white border-none rounded-lg font-sans text-sm font-bold cursor-pointer transition-all hover:bg-[#991B1B] hover:-translate-y-px disabled:opacity-70 disabled:cursor-not-allowed disabled:translate-y-0" onClick={handleSubmit} disabled={registrando} aria-busy={registrando}>
           {registrando ? 'Registrando...' : (<>Registrar Proyecto <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></>)}
         </button>
       </div>
-    </LayoutEstudiante>
+    </>
   );
 }

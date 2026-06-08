@@ -4,8 +4,6 @@ import type {
   ProyectoResponse,
   VersionDocumentoResponse,
   ProyectoCreateRequest,
-  VersionDocumentoCreateRequest,
-  EvaluadorAsignacionRequest,
 } from '../types/api.types'
 
 export const proyectosService = {
@@ -34,6 +32,11 @@ export const proyectosService = {
       .get<PaginatedResponse<ProyectoResponse>>(`/proyectos/estado/${idEstado}`, { params })
       .then((r) => r.data),
 
+  listarPorIntegrante: (idIntegrante: string, params: { page?: number; size?: number; sort?: string }) =>
+    api
+      .get<PaginatedResponse<ProyectoResponse>>(`/proyectos/integrante/${idIntegrante}`, { params })
+      .then((r) => r.data),
+
   obtenerPorId: (id: string) =>
     api.get<ProyectoResponse>(`/proyectos/${id}`).then((r) => r.data),
 
@@ -46,9 +49,17 @@ export const proyectosService = {
   crear: (data: ProyectoCreateRequest) =>
     api.post<ProyectoResponse>('/proyectos', data).then((r) => r.data),
 
-  crearVersion: (idProyecto: string, data: VersionDocumentoCreateRequest) =>
-    api.post<VersionDocumentoResponse>(`/proyectos/${idProyecto}/versiones`, data).then((r) => r.data),
-
-  asignarEvaluador: (idProyecto: string, data: EvaluadorAsignacionRequest) =>
-    api.post(`/proyectos/${idProyecto}/evaluaciones/evaluadores`, data).then((r) => r.data),
+  subirVersion: (
+    idProyecto: string,
+    archivo: File,
+    params: { etiquetaVersion: string; idTipo: number; idSubidoPor: string }
+  ) => {
+    const formData = new FormData()
+    formData.append('archivo', archivo)
+    return api
+      .post<VersionDocumentoResponse>(`/proyectos/${idProyecto}/versiones/upload`, formData, {
+        params: { idProyecto, ...params },
+      })
+      .then((r) => r.data)
+  },
 }

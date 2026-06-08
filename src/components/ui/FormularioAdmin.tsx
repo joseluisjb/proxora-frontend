@@ -31,7 +31,7 @@ export default function FormularioAdmin({
         {subtitulo && <p className="text-sm text-[#6B6B6B]">{subtitulo}</p>}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] p-7">
+      <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] p-7 animate-scale-in">
         <div className="flex flex-col gap-6">
           {children}
         </div>

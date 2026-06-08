@@ -1,20 +1,15 @@
-import type { ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
 import NavbarTop from '../ui/NavbarTop';
-import SidebarEstudiante, { type ItemSidebarEstudiante } from './SidebarEstudiante';
+import SidebarEstudiante from './SidebarEstudiante';
 
-interface LayoutEstudianteProps {
-  itemActivo: ItemSidebarEstudiante;
-  children: ReactNode;
-}
-
-export default function LayoutEstudiante({ itemActivo, children }: LayoutEstudianteProps) {
+export default function LayoutEstudiante() {
   return (
     <div className="flex flex-col min-h-screen">
       <NavbarTop />
       <div className="flex flex-1 pt-14">
-        <SidebarEstudiante itemActivo={itemActivo} />
-        <main className="flex-1 ml-[220px] p-8 min-h-[calc(100vh-56px)] bg-[#F9FAFB] overflow-y-auto">
-          {children}
+        <SidebarEstudiante />
+        <main className="flex-1 ml-[220px] p-8 min-h-[calc(100vh-56px)] bg-[#F9FAFB]">
+          <Outlet />
         </main>
       </div>
     </div>

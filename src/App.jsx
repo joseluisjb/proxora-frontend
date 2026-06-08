@@ -1,5 +1,20 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Disable browser scroll restoration — we handle it manually
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual';
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0; // Safari fallback
+  }, [pathname]);
+  return null;
+}
 import AdminLayout from './components/AdminLayout';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
@@ -14,8 +29,10 @@ import AdminSemestres from './pages/AdminSemestres';
 import FormularioLineaInvestigacion from './pages/FormularioLineaInvestigacion';
 import FormularioMateria from './pages/FormularioMateria';
 import FormularioSemestre from './pages/FormularioSemestre';
+import LayoutEstudiante from './components/layout/LayoutEstudiante';
 import DashboardEstudiante from './pages/estudiante/DashboardEstudiante';
 import RegistrarProyecto from './pages/estudiante/RegistrarProyecto';
+import MisProyectos from './pages/estudiante/MisProyectos';
 import './styles/globals.css'
 
 const DESTINO_POR_ROL = {
@@ -75,6 +92,8 @@ function PaginaPendiente({ titulo }) {
 
 function Rutas() {
   return (
+    <>
+      <ScrollToTop />
     <Routes>
       {/* Rutas públicas */}
       <Route path="/" element={<RutaRaiz />} />
@@ -104,26 +123,18 @@ function Rutas() {
 
       {/* Módulo de estudiante */}
       <Route
-        path="/estudiante/dashboard"
-        element={<RutaEstudiante><DashboardEstudiante /></RutaEstudiante>}
-      />
-      <Route
-        path="/estudiante/registrar"
-        element={<RutaEstudiante><RegistrarProyecto /></RutaEstudiante>}
-      />
-      <Route
-        path="/estudiante/documentos"
-        element={<RutaEstudiante><PaginaPendiente titulo="Documentos" /></RutaEstudiante>}
-      />
-      <Route
-        path="/estudiante/evaluaciones"
-        element={<RutaEstudiante><PaginaPendiente titulo="Evaluaciones" /></RutaEstudiante>}
-      />
-      <Route
         path="/estudiante"
-        element={<Navigate to="/estudiante/dashboard" replace />}
-      />
+        element={<RutaEstudiante><LayoutEstudiante /></RutaEstudiante>}
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<DashboardEstudiante />} />
+        <Route path="mis-proyectos" element={<MisProyectos />} />
+        <Route path="registrar" element={<RegistrarProyecto />} />
+        <Route path="documentos" element={<PaginaPendiente titulo="Documentos" />} />
+        <Route path="evaluaciones" element={<PaginaPendiente titulo="Evaluaciones" />} />
+      </Route>
     </Routes>
+    </>
   );
 }
 
