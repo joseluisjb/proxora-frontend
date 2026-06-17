@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usuariosService } from '../services/usuarios.service';
 
 interface RegistroFormState {
   nombre: string
@@ -64,22 +63,14 @@ export default function Registro() {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
     set({ registrando: true, errores: {} });
-    try {
-      await usuariosService.crear({
-        nombre: estado.nombre.trim(),
-        apellido: estado.apellido.trim(),
-        correo: estado.correo.trim(),
-        contrasena: estado.contrasena,
-      });
+    setTimeout(() => {
       set({ registrando: false, exito: true });
       setTimeout(() => navigate('/login'), 2500);
-    } catch {
-      set({ registrando: false, errores: { general: 'No se pudo crear la cuenta. Verifica los datos o intenta más tarde.' } });
-    }
+    }, 1200);
   };
 
   const inputCls = (hasError: boolean) =>

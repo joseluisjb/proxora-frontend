@@ -26,7 +26,6 @@ function esEmailValido(correo: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
 }
 
-
 export default function Login() {
   const navigate   = useNavigate();
   const { iniciarSesion } = useAuth();
@@ -73,7 +72,7 @@ export default function Login() {
         correo: estado.correo,
         rol: respuesta.rol,
         token: respuesta.token,
-        nombre: respuesta.nombreCompleto,
+        nombre: respuesta.nombre,
       });
 
       navigate(DESTINO_POR_ROL[respuesta.rol] ?? '/admin/usuarios', { replace: true });
@@ -98,7 +97,7 @@ export default function Login() {
 
   const handleInvitado = () => {
     iniciarSesion({ correo: '', rol: 'invitado' });
-    navigate('/');
+    navigate('/inicio');
   };
 
   const inputCls = (hasError: boolean) =>

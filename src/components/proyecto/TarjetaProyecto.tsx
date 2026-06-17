@@ -8,7 +8,6 @@ export interface TarjetaProyectoProps {
   mostrarIntegrantes?: boolean
   onVerProyecto?: (id: string) => void
   modo?: 'grilla' | 'lista'
-  animationDelay?: number
 }
 
 type EstadoProyecto = ProyectoResponse['estado'];
@@ -52,10 +51,9 @@ export function TarjetaProyecto({
   mostrarIntegrantes = true,
   onVerProyecto,
   modo = 'grilla',
-  animationDelay,
 }: TarjetaProyectoProps) {
   const navigate = useNavigate();
-  const estadoCfg = ESTADO_CONFIG[proyecto.estado] ?? { label: proyecto.estado, clases: 'bg-[#F3F4F6] text-[#374151]' };
+  const estadoCfg = ESTADO_CONFIG[proyecto.estado];
   const primeraLinea = proyecto.lineas[0]?.nombre ?? '';
 
   const handleVer = () => {
@@ -67,10 +65,7 @@ export function TarjetaProyecto({
   };
 
   return (
-    <article
-      className="bg-white border border-[#E5E7EB] rounded-xl p-5 flex flex-col font-sans transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-[#D1D5DB] animate-scale-in"
-      style={animationDelay !== undefined ? { animationDelay: `${animationDelay}ms` } : undefined}
-    >
+    <article className="bg-white border border-[#E5E7EB] rounded-xl p-5 flex flex-col font-sans transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-[#D1D5DB]">
       <div className="flex items-center justify-between mb-3">
         <span className={`text-xs font-semibold px-2.5 py-[3px] rounded-full ${estadoCfg.clases}`}>{estadoCfg.label}</span>
         <span className="text-xs text-[#9CA3AF]">{formatearFechaCorta(proyecto.creadoEn)}</span>
@@ -115,7 +110,7 @@ export function TarjetaProyecto({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            <span className="text-[#9CA3AF]">{VISIBILIDAD_LABEL[proyecto.visibilidad] ?? proyecto.visibilidad}</span>
+            <span className="text-[#9CA3AF]">{VISIBILIDAD_LABEL[proyecto.visibilidad]}</span>
           </div>
         )}
       </div>

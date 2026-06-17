@@ -26,7 +26,7 @@ body {
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -40,35 +40,11 @@ body {
   to   { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes modal-in {
-  from { opacity: 0; transform: scale(0.95) translateY(6px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-@keyframes modal-out {
-  from { opacity: 1; transform: scale(1) translateY(0); }
-  to   { opacity: 0; transform: scale(0.95) translateY(6px); }
-}
-
-@keyframes backdrop-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes backdrop-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
 @theme {
-  --animate-fade-in:      fade-in      0.4s  ease both;
-  --animate-slide-up:     slide-up     0.45s ease both;
-  --animate-scale-in:     scale-in     0.3s  ease both;
-  --animate-slide-right:  slide-right  0.35s ease both;
-  --animate-modal-in:     modal-in     0.22s ease both;
-  --animate-modal-out:    modal-out    0.18s ease both;
-  --animate-backdrop-in:  backdrop-in  0.22s ease both;
-  --animate-backdrop-out: backdrop-out 0.18s ease both;
+  --animate-fade-in:    fade-in    0.4s  ease both;
+  --animate-slide-up:   slide-up   0.45s ease both;
+  --animate-scale-in:   scale-in   0.3s  ease both;
+  --animate-slide-right: slide-right 0.35s ease both;
 }
 
 .animate-toast {

@@ -10,6 +10,7 @@ import { proyectosService } from '../../services/proyectos.service';
 import { semestresService } from '../../services/semestres.service';
 import { materiasService } from '../../services/materias.service';
 import { lineasService } from '../../services/lineas.service';
+import LayoutEstudiante from '../../components/layout/LayoutEstudiante';
 import { GrillaProyectos } from '../../components/proyecto/GrillaProyectos';
 import FiltrosProyectos from '../../components/ui/FiltrosProyectos';
 import Paginacion from '../../components/ui/Paginacion';
@@ -106,23 +107,21 @@ export default function DashboardEstudiante() {
   useEffect(() => { cargarProyectos(aplicados, paginaActual) }, [aplicados, paginaActual, cargarProyectos])
 
   return (
-    <>
+    <LayoutEstudiante itemActivo="dashboard">
       {toastVisible && (
         <div className="fixed top-[72px] right-6 bg-[#16A34A] text-white px-5 py-3 rounded-lg text-sm font-semibold z-[200] shadow-md animate-toast" role="status" aria-live="polite">
           ¡Proyecto registrado exitosamente!
         </div>
       )}
 
-      <div className="animate-slide-up">
-        <FiltrosProyectos
-          valores={filtros}
-          onChange={(campo, valor) => setFiltros((prev) => ({ ...prev, [campo]: valor }))}
-          onFiltrar={() => { setAplicados(filtros); setPaginaActual(0) }}
-          semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
-          materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
-          lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
-        />
-      </div>
+      <FiltrosProyectos
+        valores={filtros}
+        onChange={(campo, valor) => setFiltros((prev) => ({ ...prev, [campo]: valor }))}
+        onFiltrar={() => { setAplicados(filtros); setPaginaActual(0) }}
+        semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
+        materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
+        lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
+      />
 
       <div className="mt-6 animate-fade-in">
         <div className="flex items-start justify-between mb-5 animate-slide-up">
@@ -172,6 +171,6 @@ export default function DashboardEstudiante() {
           </div>
         )}
       </div>
-    </>
+    </LayoutEstudiante>
   )
 }

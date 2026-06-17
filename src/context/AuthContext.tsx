@@ -29,15 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  const iniciarSesion = (u: UsuarioSesion) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    setUsuario(u);
-  };
+  useEffect(() => {
+    if (usuario) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [usuario]);
 
-  const cerrarSesion = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setUsuario(null);
-  };
+  const iniciarSesion = (u: UsuarioSesion) => setUsuario(u);
+  const cerrarSesion = () => setUsuario(null);
 
   return (
     <AuthContext.Provider value={{ usuario, iniciarSesion, cerrarSesion }}>

@@ -1,5 +1,5 @@
 import api from './api'
-import type { PaginatedResponse, UsuarioCreateRequest, UsuarioResponse } from '../types/api.types'
+import type { PaginatedResponse, UsuarioResponse } from '../types/api.types'
 
 export const usuariosService = {
   listar: (params: { page?: number; size?: number; sort?: string }) =>
@@ -26,7 +26,4 @@ export const usuariosService = {
 
   activar: (id: string) =>
     api.patch(`/usuarios/${id}/activar`).then(() => undefined),
-
-  crear: (data: UsuarioCreateRequest) =>
-    api.post<UsuarioResponse>('/usuarios', data).then((r) => r.data),
 }

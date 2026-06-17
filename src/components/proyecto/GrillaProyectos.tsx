@@ -85,8 +85,8 @@ export function GrillaProyectos({
   void estadoCentral;
 
   return (
-    <div className={grillaCls}>
-      {proyectos.map((proyecto, index) => (
+    <div className={`${grillaCls} animate-fade-in`}>
+      {proyectos.map((proyecto) => (
         <TarjetaProyecto
           key={proyecto.id}
           proyecto={proyecto}
@@ -94,7 +94,6 @@ export function GrillaProyectos({
           mostrarDirector={mostrarDirector}
           mostrarIntegrantes={mostrarIntegrantes}
           modo={vistaActual}
-          animationDelay={index * 60}
         />
       ))}
     </div>
