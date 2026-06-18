@@ -141,7 +141,7 @@ export default function DetalleProyecto() {
           <SkeletonDetalle />
         ) : (
           <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1 animate-slide-up">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 min-w-0">
               <div className={cardCls}>
                 <span className={`inline-block text-xs font-semibold px-2.5 py-[3px] rounded-full mb-4 ${ESTADO_CONFIG[proyecto.estado].clases}`}>
                   {ESTADO_CONFIG[proyecto.estado].label}
@@ -161,7 +161,7 @@ export default function DetalleProyecto() {
                   </svg>
                   <h2 className="text-lg font-bold text-[#111827] m-0">Resumen del Proyecto</h2>
                 </div>
-                <p className="text-[15px] text-[#374151] leading-[1.7] m-0">{proyecto.resumen}</p>
+                <p className="text-[15px] text-[#374151] leading-[1.7] m-0 break-words">{proyecto.resumen}</p>
               </div>
 
               {proyecto.visibilidad === 'solo_metadatos' ? (
