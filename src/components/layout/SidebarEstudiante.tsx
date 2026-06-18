@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export type ItemSidebarEstudiante =
   | 'mis-proyectos'
@@ -74,6 +75,12 @@ const NAV_ITEMS: NavItemEst[] = [
 
 export default function SidebarEstudiante({ itemActivo }: SidebarEstudianteProps) {
   const navigate = useNavigate();
+  const { cerrarSesion } = useAuth();
+
+  const handleCerrarSesion = () => {
+    cerrarSesion();
+    navigate('/login');
+  };
 
   return (
     <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#E5E7EB] flex flex-col z-[100] overflow-y-auto animate-slide-right">
@@ -105,6 +112,18 @@ export default function SidebarEstudiante({ itemActivo }: SidebarEstudianteProps
           );
         })}
       </nav>
+
+      <div className="px-2 pt-2 pb-1 border-t border-[#F3F4F6]">
+        <button
+          className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-none font-sans text-[13px] font-medium cursor-pointer text-left transition-all duration-150 w-full text-[#374151] bg-transparent hover:bg-[#FEF2F2] hover:text-[#B91C1C]"
+          onClick={handleCerrarSesion}
+        >
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
     </aside>
   );
 }
