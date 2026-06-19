@@ -20,8 +20,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const esRutaAuth = error.config?.url?.includes('/auth/')
+      if (esRutaAuth) {
+        return Promise.reject(error)
+      }
+      console.error('[401] Sesión rechazada en:', error.config?.url, error.response?.data)
       localStorage.removeItem('proxora_usuario')
-      window.location.href = '/'
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }

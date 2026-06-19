@@ -1,0 +1,207 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { evaluacionesService } from '../../services/estudiante/evaluaciones.service';
+import type { ProyectoResponse, EvaluacionResponse } from '../../types/api.types';
+import { useAlertaContext } from '../../context/AlertaContext';
+
+function Iniciales({ nombre, apellido }: { nombre: string; apellido: string }) {
+  return (
+    <div className="w-10 h-10 rounded-full bg-[#B91C1C] flex items-center justify-center text-white text-[13px] font-bold shrink-0 select-none">
+      {nombre[0]?.toUpperCase()}{apellido[0]?.toUpperCase()}
+    </div>
+  );
+}
+
+function formatearFechaLarga(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-CO', {
+    month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
+
+function BarraPuntaje({ puntuacion, max = 5 }: { puntuacion: number; max?: number }) {
+  const pct = Math.min((puntuacion / max) * 100, 100);
+  return (
+    <div className="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all duration-700"
+        style={{
+          width: `${pct}%`,
+          background: pct >= 80 ? '#0D9488' : pct >= 60 ? '#D97706' : '#B91C1C',
+        }}
+      />
+    </div>
+  );
+}
+
+function TarjetaEvaluacion({ ev }: { ev: EvaluacionResponse }) {
+  return (
+    <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-5 flex flex-col gap-4 animate-slide-up">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[16px] font-bold text-[#111827] leading-snug mb-1">
+            Evaluación
+          </h3>
+          <p className="text-[12px] text-[#9CA3AF]">
+            Registrada el {formatearFechaLarga(ev.creadoEn)} por{' '}
+            <span className="font-medium text-[#6B7280]">
+              {ev.docente.nombre} {ev.docente.apellido}
+            </span>
+          </p>
+        </div>
+
+        <div className="flex flex-col items-end shrink-0">
+          <span className="text-[32px] font-bold text-[#111827] leading-none">
+            {ev.calificacion.toFixed(1)}
+          </span>
+          <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em] mt-0.5">
+            / 5.0
+          </span>
+        </div>
+      </div>
+
+      <BarraPuntaje puntuacion={ev.calificacion} />
+
+      {ev.comentario && (
+        <div className="flex gap-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl p-4">
+          <Iniciales nombre={ev.docente.nombre} apellido={ev.docente.apellido} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] text-[#374151] leading-relaxed">{ev.comentario}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function EvaluacionDetalle() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { mostrarAlerta } = useAlertaContext();
+
+  const [proyecto, setProyecto] = useState<ProyectoResponse | null>(null);
+  const [evaluaciones, setEvaluaciones] = useState<EvaluacionResponse[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargar = useCallback(async () => {
+    if (!id) return;
+    setCargando(true);
+    setError(null);
+    try {
+      const proy = await evaluacionesService.obtenerProyecto(id);
+      setProyecto(proy);
+      try {
+        const evs = await evaluacionesService.listarEvaluaciones(id);
+        setEvaluaciones(evs);
+      } catch {
+        setEvaluaciones([]);
+      }
+    } catch {
+      setError('No se pudo cargar la información del proyecto.');
+      mostrarAlerta({ mensaje: 'No se pudo cargar la información del proyecto.', variante: 'error' });
+    } finally {
+      setCargando(false);
+    }
+  }, [id, mostrarAlerta]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-[#B91C1C] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !proyecto) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <p className="text-[14px] text-[#6B7280]">{error ?? 'Proyecto no encontrado.'}</p>
+        <button
+          type="button"
+          onClick={() => navigate('/estudiante/evaluaciones')}
+          className="px-4 py-2 text-[13px] font-semibold text-white bg-[#B91C1C] rounded-lg hover:bg-[#991B1B] transition-colors duration-150"
+        >
+          Volver
+        </button>
+      </div>
+    );
+  }
+
+  const promedioTotal =
+    evaluaciones.length > 0
+      ? evaluaciones.reduce((acc, ev) => acc + ev.calificacion, 0) / evaluaciones.length
+      : null;
+
+  return (
+    <div className="animate-fade-in">
+      {/* Breadcrumb */}
+      <button
+        type="button"
+        onClick={() => navigate('/estudiante/evaluaciones')}
+        className="flex items-center gap-1.5 text-[13px] text-[#9CA3AF] hover:text-[#B91C1C] transition-colors duration-150 mb-5 group"
+      >
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true" className="group-hover:-translate-x-0.5 transition-transform duration-150">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        Evaluaciones
+      </button>
+
+      {/* Header */}
+      <div className="mb-6 animate-slide-up">
+        <h1 className="text-2xl font-bold text-[#111827] mb-1">Evaluaciones y Retroalimentación</h1>
+        <p className="text-[13px] text-[#6B7280] flex items-center gap-2 flex-wrap">
+          <span className="truncate max-w-[320px]">{proyecto.titulo}</span>
+          {proyecto.semestre && (
+            <>
+              <span className="inline-block w-1 h-1 rounded-full bg-[#D1D5DB]" aria-hidden="true" />
+              <span>{proyecto.semestre}</span>
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* Resumen de promedio */}
+      {promedioTotal !== null && (
+        <div className="flex items-center gap-4 bg-white rounded-xl border border-[#E5E7EB] shadow-sm px-5 py-4 mb-5 animate-slide-up">
+          <div className="flex flex-col">
+            <span className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em]">
+              Promedio Ponderado
+            </span>
+            <span className="text-[28px] font-bold text-[#111827] leading-tight">
+              {promedioTotal.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex-1">
+            <BarraPuntaje puntuacion={promedioTotal} />
+          </div>
+          <div className="text-[13px] text-[#6B7280]">
+            {evaluaciones.length} evaluación{evaluaciones.length !== 1 ? 'es' : ''}
+          </div>
+        </div>
+      )}
+
+      {/* Lista de evaluaciones */}
+      {evaluaciones.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white rounded-xl border border-[#E5E7EB] shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-[#F3F4F6] flex items-center justify-center mb-1">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={1.5} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+          <p className="text-[14px] font-medium text-[#374151]">Sin evaluaciones aún</p>
+          <p className="text-[13px] text-[#9CA3AF] text-center max-w-[280px]">
+            Las evaluaciones de este proyecto aparecerán aquí una vez que sean registradas.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {evaluaciones.map((ev) => (
+            <TarjetaEvaluacion key={ev.id} ev={ev} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

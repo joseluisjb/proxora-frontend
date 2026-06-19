@@ -9,6 +9,9 @@ import BarraBusqueda from '../components/ui/BarraBusqueda';
 import BotonAccionUsuario from '../components/ui/BotonAccionUsuario';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import Paginacion from '../components/ui/Paginacion';
+import ModalConfirmacion from '../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../context/AlertaContext';
 
 type FiltroRol = 'todos' | 'docente' | 'estudiante';
 
@@ -33,6 +36,8 @@ export default function AdminUsuarios() {
   const [totalElementos, setTotalElementos] = useState(0);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { modalProps, abrirModal } = useModalConfirmacion();
+  const { mostrarAlerta } = useAlertaContext();
 
   const cargarUsuarios = useCallback(async (rol: FiltroRol, texto: string, pagActual: number) => {
     setCargando(true);
@@ -47,11 +52,12 @@ export default function AdminUsuarios() {
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
     } catch {
-      setError('Error al cargar los datos. Intenta de nuevo.');
+      setError('Error al cargar los datos.');
+      mostrarAlerta({ mensaje: 'Error al cargar los usuarios. Intenta de nuevo.', variante: 'error' });
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [mostrarAlerta]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -65,20 +71,58 @@ export default function AdminUsuarios() {
 
   const handleCambioFiltroRol = (rol: FiltroRol) => { setFiltroRol(rol); setPagina(1); };
 
-  const handleHacerDocente = async (id: string) => {
-    try { await usuariosService.convertirDocente(id); await cargarUsuarios(filtroRol, busquedaDebounced, pagina); }
-    catch { setError('No se pudo cambiar el rol del usuario. Intenta de nuevo.'); }
+  const handleHacerDocente = (usuario: UsuarioResponse) => {
+    abrirModal({
+      titulo: 'Asignar rol de Docente',
+      mensaje: `¿Convertir a ${usuario.nombre} ${usuario.apellido} en docente? Tendrá acceso a las funciones del rol docente.`,
+      labelConfirmar: 'Hacer Docente',
+      variante: 'advertencia',
+      onConfirmar: async () => {
+        try {
+          await usuariosService.convertirDocente(usuario.id);
+          mostrarAlerta({ mensaje: `${usuario.nombre} ${usuario.apellido} ahora es Docente.`, variante: 'exito' });
+          await cargarUsuarios(filtroRol, busquedaDebounced, pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo cambiar el rol del usuario. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
-  const handleRevocarDocente = async (id: string) => {
-    try { await usuariosService.convertirEstudiante(id); await cargarUsuarios(filtroRol, busquedaDebounced, pagina); }
-    catch { setError('No se pudo revocar el rol de docente. Intenta de nuevo.'); }
+  const handleRevocarDocente = (usuario: UsuarioResponse) => {
+    abrirModal({
+      titulo: 'Revocar rol de Docente',
+      mensaje: `¿Revocar el rol de docente a ${usuario.nombre} ${usuario.apellido}? Pasará a ser estudiante.`,
+      labelConfirmar: 'Revocar Docente',
+      variante: 'advertencia',
+      onConfirmar: async () => {
+        try {
+          await usuariosService.convertirEstudiante(usuario.id);
+          mostrarAlerta({ mensaje: `Rol de docente revocado a ${usuario.nombre} ${usuario.apellido}.`, variante: 'exito' });
+          await cargarUsuarios(filtroRol, busquedaDebounced, pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo revocar el rol de docente. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
-  const handleEliminar = async (usuario: UsuarioResponse) => {
-    if (!window.confirm(`¿Desactivar al usuario ${usuario.nombre} ${usuario.apellido}? Su cuenta quedará inhabilitada.`)) return;
-    try { await usuariosService.desactivar(usuario.id); await cargarUsuarios(filtroRol, busquedaDebounced, pagina); }
-    catch { setError('No se pudo desactivar el usuario. Intenta de nuevo.'); }
+  const handleEliminar = (usuario: UsuarioResponse) => {
+    abrirModal({
+      titulo: 'Desactivar usuario',
+      mensaje: `¿Desactivar la cuenta de ${usuario.nombre} ${usuario.apellido}? Su cuenta quedará inhabilitada.`,
+      labelConfirmar: 'Desactivar',
+      variante: 'peligro',
+      onConfirmar: async () => {
+        try {
+          await usuariosService.desactivar(usuario.id);
+          mostrarAlerta({ mensaje: `Cuenta de ${usuario.nombre} ${usuario.apellido} desactivada.`, variante: 'exito' });
+          await cargarUsuarios(filtroRol, busquedaDebounced, pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo desactivar el usuario. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
   const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
@@ -86,6 +130,7 @@ export default function AdminUsuarios() {
 
   return (
     <div>
+      <ModalConfirmacion {...modalProps} />
       <PageHeader
         titulo="Gestión de Usuarios"
         subtitulo="Controla el acceso institucional, gestiona roles académicos y monitorea el estado de las cuentas del programa de Ingeniería de Sistemas."
@@ -104,13 +149,6 @@ export default function AdminUsuarios() {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
-        {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
-            <span className="flex-1">{error}</span>
-            <button onClick={() => cargarUsuarios(filtroRol, busquedaDebounced, pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
-          </div>
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -127,6 +165,14 @@ export default function AdminUsuarios() {
                   <td colSpan={4}>
                     <div className="text-center py-12 px-5 text-[#6B6B6B]">
                       <p className="text-sm">Cargando...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={4}>
+                    <div className="text-center py-12 px-5 text-[#6B6B6B]">
+                      <p className="text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarUsuarios(filtroRol, busquedaDebounced, pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></p>
                     </div>
                   </td>
                 </tr>
@@ -166,10 +212,10 @@ export default function AdminUsuarios() {
                     <td className={tdCls}>
                       <div className="flex items-center justify-end gap-1.5">
                         {usr.nombreRol === 'estudiante' && (
-                          <BotonAccionUsuario variante="hacer-docente" onClick={() => handleHacerDocente(usr.id)} />
+                          <BotonAccionUsuario variante="hacer-docente" onClick={() => handleHacerDocente(usr)} />
                         )}
                         {usr.nombreRol === 'docente' && (
-                          <BotonAccionUsuario variante="revocar-docente" onClick={() => handleRevocarDocente(usr.id)} />
+                          <BotonAccionUsuario variante="revocar-docente" onClick={() => handleRevocarDocente(usr)} />
                         )}
                         {usr.nombreRol !== 'administrador' && (
                           <FilaTablaAcciones mostrarEditar={false} onEliminar={() => handleEliminar(usr)} />

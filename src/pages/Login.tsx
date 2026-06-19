@@ -97,7 +97,7 @@ export default function Login() {
 
   const handleInvitado = () => {
     iniciarSesion({ correo: '', rol: 'invitado' });
-    navigate('/inicio');
+    navigate('/');
   };
 
   const inputCls = (hasError: boolean) =>
@@ -194,9 +194,10 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-[#B91C1C] text-white border-none rounded-lg font-sans text-base font-bold cursor-pointer transition-all hover:bg-[#991B1B] hover:-translate-y-px active:translate-y-0 mt-1 disabled:cursor-not-allowed disabled:opacity-80 disabled:translate-y-0"
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#B91C1C] text-white border-none rounded-lg font-sans text-base font-bold cursor-pointer transition-all hover:bg-[#991B1B] hover:-translate-y-px active:translate-y-0 mt-1 disabled:cursor-not-allowed disabled:opacity-80 disabled:translate-y-0"
             disabled={estado.iniciandoSesion}
           >
+            {estado.iniciandoSesion && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
             {estado.iniciandoSesion ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </button>
 

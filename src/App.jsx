@@ -1,5 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 import AdminLayout from './components/AdminLayout';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
@@ -14,8 +24,16 @@ import AdminSemestres from './pages/AdminSemestres';
 import FormularioLineaInvestigacion from './pages/FormularioLineaInvestigacion';
 import FormularioMateria from './pages/FormularioMateria';
 import FormularioSemestre from './pages/FormularioSemestre';
+import LayoutEstudiante from './components/layout/LayoutEstudiante';
 import DashboardEstudiante from './pages/estudiante/DashboardEstudiante';
 import RegistrarProyecto from './pages/estudiante/RegistrarProyecto';
+import MisProyectos from './pages/estudiante/MisProyectos';
+import ProyectoDetalleEstudiante from './pages/estudiante/ProyectoDetalleEstudiante';
+import EditarProyecto from './pages/estudiante/EditarProyecto';
+import Documentos from './pages/estudiante/Documentos';
+import DocumentoVersiones from './pages/estudiante/DocumentoVersiones';
+import Evaluaciones from './pages/estudiante/Evaluaciones';
+import EvaluacionDetalle from './pages/estudiante/EvaluacionDetalle';
 import './styles/globals.css'
 
 const DESTINO_POR_ROL = {
@@ -104,25 +122,20 @@ function Rutas() {
 
       {/* Módulo de estudiante */}
       <Route
-        path="/estudiante/dashboard"
-        element={<RutaEstudiante><DashboardEstudiante /></RutaEstudiante>}
-      />
-      <Route
-        path="/estudiante/registrar"
-        element={<RutaEstudiante><RegistrarProyecto /></RutaEstudiante>}
-      />
-      <Route
-        path="/estudiante/documentos"
-        element={<RutaEstudiante><PaginaPendiente titulo="Documentos" /></RutaEstudiante>}
-      />
-      <Route
-        path="/estudiante/evaluaciones"
-        element={<RutaEstudiante><PaginaPendiente titulo="Evaluaciones" /></RutaEstudiante>}
-      />
-      <Route
         path="/estudiante"
-        element={<Navigate to="/estudiante/dashboard" replace />}
-      />
+        element={<RutaEstudiante><LayoutEstudiante /></RutaEstudiante>}
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<DashboardEstudiante />} />
+        <Route path="mis-proyectos" element={<MisProyectos />} />
+        <Route path="mis-proyectos/:id" element={<ProyectoDetalleEstudiante />} />
+        <Route path="mis-proyectos/:id/editar" element={<EditarProyecto />} />
+        <Route path="registrar" element={<RegistrarProyecto />} />
+        <Route path="documentos" element={<Documentos />} />
+        <Route path="documentos/:id" element={<DocumentoVersiones />} />
+        <Route path="evaluaciones" element={<Evaluaciones />} />
+        <Route path="evaluaciones/:id" element={<EvaluacionDetalle />} />
+      </Route>
     </Routes>
   );
 }
@@ -130,6 +143,7 @@ function Rutas() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <Rutas />
       </AuthProvider>

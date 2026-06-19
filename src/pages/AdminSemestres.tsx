@@ -6,6 +6,9 @@ import PageHeader from '../components/ui/PageHeader';
 import BadgeEstado from '../components/ui/BadgeEstado';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import Paginacion from '../components/ui/Paginacion';
+import ModalConfirmacion from '../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../context/AlertaContext';
 
 const REGISTROS_POR_PAGINA = 10;
 
@@ -15,12 +18,14 @@ function formatearFecha(iso: string): string {
 
 export default function AdminSemestres() {
   const navigate = useNavigate();
+  const { mostrarAlerta } = useAlertaContext();
   const [pagina, setPagina] = useState(1);
   const [semestres, setSemestres] = useState<SemestreResponse[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalElementos, setTotalElementos] = useState(0);
+  const { modalProps, abrirModal } = useModalConfirmacion();
 
   const cargarSemestres = useCallback(async (pagActual: number) => {
     setCargando(true);
@@ -30,16 +35,31 @@ export default function AdminSemestres() {
       setSemestres(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch { setError('Error al cargar los datos. Intenta de nuevo.'); }
+    } catch {
+      setError('Error al cargar los datos.');
+      mostrarAlerta({ mensaje: 'Error al cargar los semestres. Intenta de nuevo.', variante: 'error' });
+    }
     finally { setCargando(false); }
-  }, []);
+  }, [mostrarAlerta]);
 
   useEffect(() => { cargarSemestres(pagina); }, [pagina, cargarSemestres]);
 
-  const handleEliminar = async (semestre: SemestreResponse) => {
-    if (!window.confirm(`¿Eliminar el semestre ${semestre.nombre}? Esta acción no se puede deshacer.`)) return;
-    try { await semestresService.eliminar(semestre.id); await cargarSemestres(pagina); }
-    catch { setError('No se pudo eliminar el semestre. Intenta de nuevo.'); }
+  const handleEliminar = (semestre: SemestreResponse) => {
+    abrirModal({
+      titulo: 'Eliminar semestre',
+      mensaje: `¿Eliminar el semestre "${semestre.nombre}"? Esta acción no se puede deshacer.`,
+      labelConfirmar: 'Eliminar',
+      variante: 'peligro',
+      onConfirmar: async () => {
+        try {
+          await semestresService.eliminar(semestre.id);
+          mostrarAlerta({ mensaje: `Semestre "${semestre.nombre}" eliminado correctamente.`, variante: 'exito' });
+          await cargarSemestres(pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo eliminar el semestre. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
   const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
@@ -47,6 +67,7 @@ export default function AdminSemestres() {
 
   return (
     <div>
+      <ModalConfirmacion {...modalProps} />
       <PageHeader
         titulo="Gestión de Semestres"
         subtitulo="Administra los Semestres académicos."
@@ -65,13 +86,6 @@ export default function AdminSemestres() {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
-            <span className="flex-1">{error}</span>
-            <button onClick={() => cargarSemestres(pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
-          </div>
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -85,6 +99,8 @@ export default function AdminSemestres() {
             <tbody>
               {cargando ? (
                 <tr><td colSpan={4}><div className="text-center py-12 text-[#6B6B6B] text-sm">Cargando...</div></td></tr>
+              ) : error ? (
+                <tr><td colSpan={4}><div className="text-center py-12 text-[#6B6B6B] text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarSemestres(pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></div></td></tr>
               ) : semestres.length === 0 ? (
                 <tr><td colSpan={4}><div className="text-center py-12 text-[#6B6B6B] text-sm">No hay semestres registrados</div></td></tr>
               ) : (

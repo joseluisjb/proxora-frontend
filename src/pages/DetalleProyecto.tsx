@@ -4,6 +4,8 @@ import type { ProyectoResponse, VersionDocumentoResponse } from '../types/api.ty
 import { proyectosService } from '../services/proyectos.service';
 import NavbarPublica from '../components/layout/NavbarPublica';
 import AvatarIniciales from '../components/ui/AvatarIniciales';
+import Alerta from '../components/ui/Alerta';
+import { useAlerta } from '../hooks/useAlerta';
 
 type EstadoProyecto = ProyectoResponse['estado'];
 type NivelVisibilidad = ProyectoResponse['visibilidad'];
@@ -68,6 +70,7 @@ const infoValorCls = "text-[15px] text-[#111827] m-0 font-medium";
 export default function DetalleProyecto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { alertaProps, mostrarAlerta } = useAlerta();
 
   const [proyecto, setProyecto] = useState<ProyectoResponse | null>(null);
   const [versiones, setVersiones] = useState<VersionDocumentoResponse[]>([]);
@@ -75,6 +78,19 @@ export default function DetalleProyecto() {
   const [errorProyecto, setErrorProyecto] = useState<string | null>(null);
   const [errorVersiones, setErrorVersiones] = useState<string | null>(null);
   const [noEncontrado, setNoEncontrado] = useState(false);
+  const [descargando, setDescargando] = useState<Set<string>>(new Set());
+
+  const handleDescargar = async (idProyecto: string, idVersion: string) => {
+    if (descargando.has(idVersion)) return;
+    setDescargando((prev) => new Set([...prev, idVersion]));
+    try {
+      await proyectosService.descargarVersion(idProyecto, idVersion);
+    } catch {
+      mostrarAlerta({ mensaje: 'No se pudo descargar el archivo. Intenta de nuevo.', variante: 'error' });
+    } finally {
+      setDescargando((prev) => { const s = new Set(prev); s.delete(idVersion); return s; });
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -85,11 +101,19 @@ export default function DetalleProyecto() {
         setProyecto(resProyecto.value);
       } else {
         const err = resProyecto.reason as { response?: { status?: number } };
-        if (err.response?.status === 404) setNoEncontrado(true);
-        else setErrorProyecto('No se pudo cargar el proyecto. Intenta de nuevo.');
+        if (err.response?.status === 404) {
+          setNoEncontrado(true);
+        } else {
+          setErrorProyecto('No se pudo cargar el proyecto. Intenta de nuevo.');
+          mostrarAlerta({ mensaje: 'No se pudo cargar el proyecto. Intenta de nuevo.', variante: 'error' });
+        }
       }
-      if (resVersiones.status === 'fulfilled') setVersiones(resVersiones.value);
-      else setErrorVersiones('No se pudieron cargar los documentos.');
+      if (resVersiones.status === 'fulfilled') {
+        setVersiones(resVersiones.value);
+      } else {
+        setErrorVersiones('No se pudieron cargar los documentos.');
+        mostrarAlerta({ mensaje: 'No se pudieron cargar los documentos del proyecto.', variante: 'advertencia' });
+      }
       setCargando(false);
     });
   }, [id]);
@@ -99,6 +123,7 @@ export default function DetalleProyecto() {
   if (noEncontrado) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] font-sans">
+        <Alerta {...alertaProps} />
         <NavbarPublica />
         <div className="max-w-[1100px] mx-auto px-12 py-6">
           <div className="flex flex-col items-center gap-3 pt-20 text-center">
@@ -117,6 +142,7 @@ export default function DetalleProyecto() {
   if (errorProyecto) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] font-sans">
+        <Alerta {...alertaProps} />
         <NavbarPublica />
         <div className="max-w-[1100px] mx-auto px-12 py-6">
           <div className="flex flex-col items-center gap-3 pt-20 text-center">
@@ -130,6 +156,7 @@ export default function DetalleProyecto() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-sans">
+      <Alerta {...alertaProps} />
       <NavbarPublica />
 
       <div className="max-w-[1100px] mx-auto px-12 pt-6 pb-12 max-md:px-4">
@@ -178,46 +205,44 @@ export default function DetalleProyecto() {
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
-                    <h2 className="text-lg font-bold text-[#111827] m-0">Versiones del Documento</h2>
+                    <h2 className="text-lg font-bold text-[#111827] m-0">Documento</h2>
                   </div>
                   {errorVersiones ? (
                     <p className="text-[13px] text-[#6B7280]">{errorVersiones}</p>
                   ) : versiones.length === 0 ? (
                     <p className="text-sm text-[#9CA3AF] text-center py-6 m-0">Sin documentos disponibles para este proyecto</p>
-                  ) : (
-                    <ul className="list-none m-0 p-0">
-                      {versiones.map((ver) => (
-                        <li key={ver.id} className="flex items-center justify-between gap-4 py-3 border-b border-[#F3F4F6] last:border-b-0">
-                          <div className="flex items-center gap-3">
-                            <IconoArchivo mimeType={ver.mimeType} />
-                            <div>
-                              <p className="text-sm font-bold text-[#111827] m-0 mb-0.5">{ver.etiquetaVersion}</p>
-                              <p className="text-xs text-[#6B7280] m-0">
-                                {extensionDeMime(ver.mimeType, ver.nombreArchivo)} • {formatearTamano(ver.tamanoBytes)} • Actualizado {formatearFecha(ver.creadoEn)}
-                              </p>
-                            </div>
+                  ) : (() => {
+                    const ver = versiones[0];
+                    return (
+                      <div className="flex items-center justify-between gap-4 py-1">
+                        <div className="flex items-center gap-3">
+                          <IconoArchivo mimeType={ver.mimeType} />
+                          <div>
+                            <p className="text-sm font-bold text-[#111827] m-0 mb-0.5">{ver.etiquetaVersion}</p>
+                            <p className="text-xs text-[#6B7280] m-0">
+                              {extensionDeMime(ver.mimeType, ver.nombreArchivo)} • {formatearTamano(ver.tamanoBytes)} • Actualizado {formatearFecha(ver.creadoEn)}
+                            </p>
                           </div>
-                          <div className="flex gap-2 shrink-0">
-                            <button type="button" className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-[#374151] border border-[#D1D5DB] rounded-md text-[13px] font-medium cursor-pointer font-sans hover:bg-[#F9FAFB] transition-colors" onClick={() => alert('Descarga disponible próximamente')} aria-label={`Ver ${ver.etiquetaVersion}`}>
-                              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              Ver
-                            </button>
-                            {proyecto.visibilidad === 'lectura_descarga' && (
-                              <button type="button" className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#B91C1C] text-white border-none rounded-md text-[13px] font-medium cursor-pointer font-sans hover:bg-[#991B1B] transition-colors" onClick={() => alert('Descarga disponible próximamente')} aria-label={`Descargar ${ver.etiquetaVersion}`}>
-                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Descargar
-                              </button>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                        </div>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#B91C1C] text-white border-none rounded-md text-[13px] font-medium cursor-pointer font-sans hover:bg-[#991B1B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                          onClick={() => handleDescargar(ver.idProyecto, ver.id)}
+                          disabled={descargando.has(ver.id)}
+                          aria-label={`Descargar ${ver.etiquetaVersion}`}
+                        >
+                          {descargando.has(ver.id) ? (
+                            <div className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          )}
+                          Descargar
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
