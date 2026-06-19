@@ -1,19 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import type { UsuarioResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse } from '../../types/api.types';
 import { registrarService } from '../../services/estudiante/registrar.service';
+import { misProyectosService } from '../../services/estudiante/misProyectos.service';
 import { useAuth } from '../../context/AuthContext';
 import AvatarIniciales from '../../components/ui/AvatarIniciales';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
-
-const TIPOS_DOCUMENTO = [
-  { id: 1, nombre: 'Propuesta' },
-  { id: 2, nombre: 'Avance' },
-  { id: 3, nombre: 'Especificación Técnica' },
-  { id: 4, nombre: 'Informe Final' },
-] as const;
 
 const NIVELES_VISIBILIDAD = [
   { id: 1, nombre: 'Solo metadatos' },
@@ -27,30 +21,41 @@ const DESCRIPCIONES_VISIBILIDAD: Record<number, string> = {
   3: 'Los documentos son públicos y pueden descargarse libremente.',
 };
 
-function formatearTamano(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+const VISIBILIDAD_A_ID: Record<string, number> = {
+  solo_metadatos: 1,
+  lectura: 2,
+  lectura_descarga: 3,
+};
 
-function validarArchivo(file: File): string | null {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  if (!['pdf', 'doc', 'docx'].includes(ext)) return 'Solo se permiten archivos PDF, DOC y DOCX';
-  if (file.size > 25 * 1024 * 1024) return 'El archivo no puede superar 25 MB';
-  return null;
-}
+const ESTADOS_PROYECTO = [
+  { id: 1, nombre: 'En Desarrollo' },
+  { id: 2, nombre: 'Bajo Revisión' },
+  { id: 3, nombre: 'Retrasado' },
+  { id: 4, nombre: 'Finalizado' },
+];
 
-export default function RegistrarProyecto() {
+const ESTADO_A_ID: Record<string, number> = {
+  en_desarrollo: 1,
+  bajo_revision: 2,
+  retrasado: 3,
+  finalizado: 4,
+};
+
+export default function EditarProyecto() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { usuario } = useAuth();
+
+  const [cargandoProyecto, setCargandoProyecto] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   const [titulo, setTitulo] = useState('');
   const [resumen, setResumen] = useState('');
   const [idSemestre, setIdSemestre] = useState('');
   const [idMateria, setIdMateria] = useState('');
+  const [idEstado, setIdEstado] = useState(1);
   const [lineasIds, setLineasIds] = useState<string[]>([]);
   const [idVisibilidad, setIdVisibilidad] = useState(2);
-  const [documento, setDocumento] = useState<{ archivo: File | null; idTipo: number | string; etiquetaVersion: string }>({ archivo: null, idTipo: '', etiquetaVersion: '' });
 
   const [integrantesSeleccionados, setIntegrantesSeleccionados] = useState<UsuarioResponse[]>([]);
   const [directoresSeleccionados, setDirectoresSeleccionados] = useState<UsuarioResponse[]>([]);
@@ -73,13 +78,10 @@ export default function RegistrarProyecto() {
   const [semestresActivos, setSemestresActivos] = useState<SemestreResponse[]>([]);
   const [materiasActivas, setMateriasActivas] = useState<MateriaResponse[]>([]);
 
-  const [registrando, setRegistrando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const { modalProps, abrirModal } = useModalConfirmacion();
   const { mostrarAlerta } = useAlertaContext();
   const [errores, setErrores] = useState<Record<string, string>>({});
-  const [dragOver, setDragOver] = useState(false);
-  const [errorArchivo, setErrorArchivo] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refDropdownIntegrantes = useRef<HTMLDivElement>(null);
   const refDropdownDirector = useRef<HTMLDivElement>(null);
@@ -87,25 +89,59 @@ export default function RegistrarProyecto() {
   const refDropdownLineas = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    registrarService.listarSemestresActivos({ size: 100 })
-      .then((r) => setSemestresActivos(r.content))
-      .catch(() => registrarService.listarSemestres({ size: 100 }).then((r) => setSemestresActivos(r.content)).catch(() => {}));
-    registrarService.listarMateriasActivas({ size: 100 })
-      .then((r) => setMateriasActivas(r.content))
-      .catch(() => registrarService.listarMaterias({ size: 100 }).then((r) => setMateriasActivas(r.content)).catch(() => {}));
-    registrarService.listarLineasActivas({ size: 100 })
-      .then((r) => setTodasLineas(r.content))
-      .catch(() => registrarService.listarLineas({ size: 100 }).then((r) => setTodasLineas(r.content)).catch(() => {}));
-    registrarService.listarDocentes({ size: 50 }).then((r) => setTodoDocentes(r.content)).catch(() => {});
-    registrarService.listarEstudiantes({ size: 200 }).then((r) => setTodosEstudiantes(r.content)).catch(() => {});
-  }, []);
+    if (!id) return;
+    Promise.all([
+      misProyectosService.obtenerDetalle(id),
+      registrarService.listarSemestresActivos({ size: 100 }).catch(() => registrarService.listarSemestres({ size: 100 })),
+      registrarService.listarMateriasActivas({ size: 100 }).catch(() => registrarService.listarMaterias({ size: 100 })),
+      registrarService.listarLineasActivas({ size: 100 }).catch(() => registrarService.listarLineas({ size: 100 })),
+      registrarService.listarDocentes({ size: 50 }).catch(() => ({ content: [] as UsuarioResponse[] })),
+      registrarService.listarEstudiantes({ size: 200 }).catch(() => ({ content: [] as UsuarioResponse[] })),
+    ])
+      .then(([proyecto, semestres, materias, lineas, docentes, estudiantes]) => {
+        setSemestresActivos(semestres.content);
+        setMateriasActivas(materias.content);
+        setTodasLineas(lineas.content);
+        setTodoDocentes(docentes.content);
+        setTodosEstudiantes(estudiantes.content);
 
-  useEffect(() => {
-    if (!usuario) return;
-    const integrante: UsuarioResponse = { id: usuario.id ?? '', nombre: usuario.nombre ?? 'Estudiante', apellido: usuario.apellido ?? '', correo: usuario.correo, activo: true, nombreRol: 'estudiante' };
-    setIntegrantesSeleccionados([integrante]);
-  }, [usuario]);
+        setTitulo(proyecto.titulo);
+        setResumen(proyecto.resumen);
+        setIdEstado(ESTADO_A_ID[proyecto.estado] ?? 1);
+        setIdVisibilidad(VISIBILIDAD_A_ID[proyecto.visibilidad] ?? 2);
+        setLineasIds(proyecto.lineas.map((l) => l.id));
 
+        setIntegrantesSeleccionados(
+          proyecto.integrantes.map((i) => ({
+            id: i.id, nombre: i.nombre, apellido: i.apellido, correo: i.correo, activo: true, nombreRol: 'estudiante',
+          }))
+        );
+        setDirectoresSeleccionados(
+          proyecto.directores.map((d) => ({
+            id: d.id, nombre: d.nombre, apellido: d.apellido, correo: d.correo, activo: true, nombreRol: 'docente',
+          }))
+        );
+        setEvaluadoresSeleccionados(
+          proyecto.evaluadores.map((e) => ({
+            id: e.id, nombre: e.nombre, apellido: e.apellido, correo: e.correo, activo: true, nombreRol: 'docente',
+          }))
+        );
+
+        if (proyecto.semestre) {
+          const s = semestres.content.find((s) => s.nombre === proyecto.semestre);
+          if (s) setIdSemestre(s.id);
+        }
+        if (proyecto.materia) {
+          const m = materias.content.find((m) => m.nombre === proyecto.materia);
+          if (m) setIdMateria(m.id);
+        }
+      })
+      .catch(() => {
+        setErrorCarga('No se pudo cargar el proyecto para editar.');
+        mostrarAlerta({ mensaje: 'No se pudo cargar el proyecto para editar.', variante: 'error' });
+      })
+      .finally(() => setCargandoProyecto(false));
+  }, [id]);
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -125,16 +161,13 @@ export default function RegistrarProyecto() {
     setMostrandoDropdownIntegrantes(false);
   };
 
-  const handleRemoveIntegrante = (id: string) => { if (usuario?.id && id === usuario.id) return; setIntegrantesSeleccionados((prev) => prev.filter((i) => i.id !== id)); };
+  const handleRemoveIntegrante = (uid: string) => { if (usuario?.id && uid === usuario.id) return; setIntegrantesSeleccionados((prev) => prev.filter((i) => i.id !== uid)); };
   const handleAddDirector = (u: UsuarioResponse) => { if (directoresSeleccionados.some((d) => d.id === u.id)) return; setDirectoresSeleccionados((prev) => [...prev, u]); setBusquedaDirector(''); setMostrandoDropdownDocentes(false); };
-  const handleRemoveDirector = (id: string) => setDirectoresSeleccionados((prev) => prev.filter((d) => d.id !== id));
+  const handleRemoveDirector = (uid: string) => setDirectoresSeleccionados((prev) => prev.filter((d) => d.id !== uid));
   const handleAddEvaluador = (u: UsuarioResponse) => { if (evaluadoresSeleccionados.some((e) => e.id === u.id)) return; setEvaluadoresSeleccionados((prev) => [...prev, u]); setBusquedaEvaluador(''); setMostrandoDropdownEvaluadores(false); };
-  const handleRemoveEvaluador = (id: string) => setEvaluadoresSeleccionados((prev) => prev.filter((e) => e.id !== id));
-  const handleAddLinea = (id: string) => { if (lineasIds.includes(id)) return; setLineasIds((prev) => [...prev, id]); setBusquedaLinea(''); setMostrandoDropdownLineas(false); };
-  const handleRemoveLinea = (id: string) => setLineasIds((prev) => prev.filter((l) => l !== id));
-
-  const handleFileChange = (file: File) => { const err = validarArchivo(file); if (err) { setErrorArchivo(err); return; } setErrorArchivo(''); setDocumento((prev) => ({ ...prev, archivo: file })); };
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); const file = e.dataTransfer.files[0]; if (file) handleFileChange(file); };
+  const handleRemoveEvaluador = (uid: string) => setEvaluadoresSeleccionados((prev) => prev.filter((e) => e.id !== uid));
+  const handleAddLinea = (lid: string) => { if (lineasIds.includes(lid)) return; setLineasIds((prev) => [...prev, lid]); setBusquedaLinea(''); setMostrandoDropdownLineas(false); };
+  const handleRemoveLinea = (lid: string) => setLineasIds((prev) => prev.filter((l) => l !== lid));
 
   const validar = useCallback((): Record<string, string> => {
     const errs: Record<string, string> = {};
@@ -143,49 +176,50 @@ export default function RegistrarProyecto() {
     else if (titulo.trim().length > 300) errs.titulo = 'El título no puede superar 300 caracteres';
     if (!resumen.trim()) errs.resumen = 'El resumen es obligatorio';
     else if (resumen.trim().length < 50) errs.resumen = 'El resumen debe tener al menos 50 caracteres';
-    if (documento.archivo) { if (!documento.idTipo) errs.tipoDocumento = 'Selecciona el tipo de documento'; if (!documento.etiquetaVersion.trim()) errs.etiquetaVersion = 'Ingresa una etiqueta de versión'; }
     return errs;
-  }, [titulo, resumen, documento]);
+  }, [titulo, resumen]);
 
   const handleSubmit = async () => {
-    setErrores({}); setRegistrando(true);
+    if (!id) return;
+    setGuardando(true);
     try {
-      const proyecto = await registrarService.crearProyecto({ titulo: titulo.trim(), resumen: resumen.trim(), idSemestre: idSemestre || null, idMateria: idMateria || null, idEstado: 1, idVisibilidad: idVisibilidad, idRegistradoPor: usuario?.id ?? '', integrantesIds: integrantesSeleccionados.map((i) => i.id), directoresIds: directoresSeleccionados.map((d) => d.id), lineasIds: lineasIds });
-      if (documento.archivo) {
-        await registrarService.crearVersion(proyecto.id, { idTipo: documento.idTipo, etiquetaVersion: documento.etiquetaVersion.trim(), rutaS3: `proyectos/${proyecto.id}/versiones/${crypto.randomUUID()}/${documento.archivo.name}`, nombreArchivo: documento.archivo.name, tamanoBytes: documento.archivo.size, mimeType: documento.archivo.type, idSubidoPor: usuario?.id ?? '' });
-      }
-      if (evaluadoresSeleccionados.length > 0) {
-        let fallaron = 0;
-        for (const evaluador of evaluadoresSeleccionados) {
-          try { await registrarService.asignarEvaluador(proyecto.id, { idDocente: evaluador.id, idAsignadoPor: usuario?.id ?? '' }); }
-          catch { fallaron++; }
-        }
-        if (fallaron > 0) {
-          mostrarAlerta({ mensaje: 'El proyecto fue registrado pero algunos evaluadores no pudieron ser asignados.', variante: 'advertencia' });
-          navigate('/estudiante/dashboard');
-          return;
-        }
-      }
-      mostrarAlerta({ mensaje: '¡Proyecto registrado exitosamente!', variante: 'exito' });
-      navigate('/estudiante/dashboard');
+      await misProyectosService.actualizar(id, {
+        titulo: titulo.trim(),
+        resumen: resumen.trim(),
+        idSemestre: idSemestre || null,
+        idMateria: idMateria || null,
+        idEstado: idEstado,
+        idVisibilidad: idVisibilidad,
+        integrantesIds: integrantesSeleccionados.map((i) => i.id),
+        directoresIds: directoresSeleccionados.map((d) => d.id),
+        lineasIds: lineasIds,
+        evaluadoresIds: evaluadoresSeleccionados.map((e) => e.id),
+      });
+      mostrarAlerta({ mensaje: '¡Proyecto actualizado exitosamente!', variante: 'exito' });
+      navigate(`/estudiante/mis-proyectos/${id}`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
-      if (axiosErr.response?.status === 400 || axiosErr.response?.status === 404) mostrarAlerta({ mensaje: 'Error al registrar el proyecto. Verifica los datos e intenta de nuevo.', variante: 'error' });
-      else mostrarAlerta({ mensaje: 'No se pudo conectar con el servidor. Intenta de nuevo.', variante: 'error' });
-    } finally { setRegistrando(false); }
+      if (axiosErr.response?.status === 400 || axiosErr.response?.status === 404) {
+        mostrarAlerta({ mensaje: 'Error al actualizar el proyecto. Verifica los datos e intenta de nuevo.', variante: 'error' });
+      } else {
+        mostrarAlerta({ mensaje: 'No se pudo conectar con el servidor. Intenta de nuevo.', variante: 'error' });
+      }
+    } finally {
+      setGuardando(false);
+    }
   };
 
-  const handleClickRegistrar = () => {
+  const handleClickGuardar = () => {
     const errs = validar();
     if (Object.keys(errs).length > 0) {
       setErrores(errs);
-      mostrarAlerta({ mensaje: 'Completa los campos obligatorios antes de registrar el proyecto.', variante: 'advertencia' });
+      mostrarAlerta({ mensaje: 'Completa los campos obligatorios antes de guardar los cambios.', variante: 'advertencia' });
       return;
     }
     abrirModal({
-      titulo: 'Confirmar registro',
-      mensaje: '¿Estás seguro de que deseas registrar este proyecto? Verifica que todos los datos sean correctos antes de continuar.',
-      labelConfirmar: 'Registrar proyecto',
+      titulo: 'Confirmar cambios',
+      mensaje: '¿Estás seguro de que deseas guardar los cambios en este proyecto? Verifica que todos los datos sean correctos antes de continuar.',
+      labelConfirmar: 'Guardar cambios',
       variante: 'advertencia',
       onConfirmar: handleSubmit,
     });
@@ -216,18 +250,63 @@ export default function RegistrarProyecto() {
     <div className="relative mb-3" ref={ref}>{children}</div>
   );
 
+  if (cargandoProyecto) {
+    return (
+      <div className="animate-fade-in">
+        <div className="h-4 w-36 bg-[#F3F4F6] rounded mb-4 animate-pulse" />
+        <div className="h-8 w-48 bg-[#F3F4F6] rounded mb-2 animate-pulse" />
+        <div className="h-4 w-80 bg-[#F3F4F6] rounded mb-6 animate-pulse" />
+        <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1">
+          <div className="flex flex-col gap-4">
+            <div className="bg-[#F3F4F6] rounded-xl h-[320px] animate-pulse" />
+            <div className="bg-[#F3F4F6] rounded-xl h-[380px] animate-pulse" />
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="bg-[#F3F4F6] rounded-xl h-[200px] animate-pulse" />
+            <div className="bg-[#F3F4F6] rounded-xl h-[180px] animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorCarga) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <p className="text-[14px] text-[#6B7280]">{errorCarga}</p>
+        <button
+          type="button"
+          onClick={() => navigate('/estudiante/mis-proyectos')}
+          className="px-4 py-2 text-[13px] font-semibold text-white bg-[#B91C1C] rounded-lg hover:bg-[#991B1B] transition-colors duration-150"
+        >
+          Volver a Mis Proyectos
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="animate-fade-in">
       <ModalConfirmacion {...modalProps} />
 
       <div className="mb-6 animate-slide-up">
-        <h1 className="text-[28px] font-bold text-[#111827] mb-1.5 tracking-[-0.01em]">Registrar Nuevo Proyecto</h1>
+        <button
+          type="button"
+          onClick={() => navigate(`/estudiante/mis-proyectos/${id}`)}
+          className="flex items-center gap-1.5 text-[13px] text-[#9CA3AF] hover:text-[#B91C1C] transition-colors duration-150 mb-3 group"
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true" className="group-hover:-translate-x-0.5 transition-transform duration-150">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Detalle del proyecto
+        </button>
+        <h1 className="text-[28px] font-bold text-[#111827] mb-1.5 tracking-[-0.01em]">Editar Proyecto</h1>
         <p className="text-sm text-[#6B7280] max-w-[560px]">
-          Registra tu proyecto de grado o propuesta de investigación del programa de Ingeniería de Sistemas.
+          Modifica los datos de tu proyecto de grado o propuesta de investigación del programa de Ingeniería de Sistemas.
         </p>
       </div>
 
-      <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1">
+      <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1 animate-slide-up">
 
         <div className="flex flex-col gap-4">
           {/* Detalles */}
@@ -237,21 +316,27 @@ export default function RegistrarProyecto() {
               <span className={cardTituloCls}>Detalles del Proyecto</span>
             </div>
             <div className={campoMb}>
-              <label htmlFor="rp-titulo" className={labelCls}>TÍTULO DEL PROYECTO</label>
-              <input id="rp-titulo" type="text" className={inputCls(errores.titulo)} placeholder="Ej. Implementación de Blockchain en cadenas de suministro académico" value={titulo} onChange={(e) => { setTitulo(e.target.value); setErrores((p) => ({ ...p, titulo: '' })); }} aria-invalid={!!errores.titulo} />
+              <label htmlFor="ep-titulo" className={labelCls}>TÍTULO DEL PROYECTO</label>
+              <input id="ep-titulo" type="text" className={inputCls(errores.titulo)} placeholder="Ej. Implementación de Blockchain en cadenas de suministro académico" value={titulo} onChange={(e) => { setTitulo(e.target.value); setErrores((p) => ({ ...p, titulo: '' })); }} aria-invalid={!!errores.titulo} />
               {errores.titulo && <p className={errorCls} role="alert">{errores.titulo}</p>}
               <p className={ayudaCls}>El título debe ser conciso y técnicamente descriptivo.</p>
             </div>
             <div className={campoMb}>
-              <label htmlFor="rp-semestre" className={labelCls}>SEMESTRE ACADÉMICO</label>
-              <select id="rp-semestre" className={selectCls} value={idSemestre} onChange={(e) => setIdSemestre(e.target.value)}>
+              <label htmlFor="ep-semestre" className={labelCls}>SEMESTRE ACADÉMICO</label>
+              <select id="ep-semestre" className={selectCls} value={idSemestre} onChange={(e) => setIdSemestre(e.target.value)}>
                 <option value="">Selecciona un semestre</option>
                 {semestresActivos.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
               </select>
             </div>
             <div className={campoMb}>
-              <label htmlFor="rp-resumen" className={labelCls}>RESUMEN</label>
-              <textarea id="rp-resumen" className={`${inputCls(errores.resumen)} resize-y min-h-[140px]`} rows={6} placeholder="Define el planteamiento del problema, el alcance y los objetivos técnicos del proyecto..." value={resumen} onChange={(e) => { setResumen(e.target.value); setErrores((p) => ({ ...p, resumen: '' })); }} aria-invalid={!!errores.resumen} />
+              <label htmlFor="ep-estado" className={labelCls}>ESTADO DEL PROYECTO</label>
+              <select id="ep-estado" className={selectCls} value={idEstado} onChange={(e) => setIdEstado(Number(e.target.value))}>
+                {ESTADOS_PROYECTO.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </select>
+            </div>
+            <div className={campoMb}>
+              <label htmlFor="ep-resumen" className={labelCls}>RESUMEN</label>
+              <textarea id="ep-resumen" className={`${inputCls(errores.resumen)} resize-y min-h-[140px]`} rows={6} placeholder="Define el planteamiento del problema, el alcance y los objetivos técnicos del proyecto..." value={resumen} onChange={(e) => { setResumen(e.target.value); setErrores((p) => ({ ...p, resumen: '' })); }} aria-invalid={!!errores.resumen} />
               {errores.resumen && <p className={errorCls} role="alert">{errores.resumen}</p>}
             </div>
           </div>
@@ -402,58 +487,6 @@ export default function RegistrarProyecto() {
               )}
             </div>
           </div>
-
-          {/* Documento */}
-          <div className={cardCls}>
-            <div className={cardHeaderCls}>
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-              <span className={cardTituloCls}>Documento del Proyecto</span>
-            </div>
-            <div className={campoMb}>
-              <label htmlFor="rp-tipo-doc" className={labelCls}>TIPO DE DOCUMENTO</label>
-              <select id="rp-tipo-doc" className={selectCls} value={documento.idTipo} onChange={(e) => setDocumento((p) => ({ ...p, idTipo: e.target.value }))} aria-invalid={!!errores.tipoDocumento}>
-                <option value="">Selecciona el tipo</option>
-                {TIPOS_DOCUMENTO.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-              </select>
-              {errores.tipoDocumento && <p className={errorCls} role="alert">{errores.tipoDocumento}</p>}
-            </div>
-            <div className={campoMb}>
-              <label htmlFor="rp-version" className={labelCls}>ETIQUETA DE VERSIÓN</label>
-              <input id="rp-version" type="text" className={inputCls(errores.etiquetaVersion)} placeholder="Ej. v1.0, Borrador Final, Propuesta Inicial" maxLength={50} value={documento.etiquetaVersion} onChange={(e) => setDocumento((p) => ({ ...p, etiquetaVersion: e.target.value }))} aria-invalid={!!errores.etiquetaVersion} />
-              {errores.etiquetaVersion && <p className={errorCls} role="alert">{errores.etiquetaVersion}</p>}
-            </div>
-            <div className={campoMb}>
-              <p className={labelCls}>ARCHIVO DEL PROYECTO</p>
-              {documento.archivo ? (
-                <div className="flex items-center gap-2.5 px-3.5 py-3 border-[1.5px] border-[#E5E7EB] rounded-lg bg-white">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#6B7280" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <span className="text-[13px] font-semibold text-[#111827] truncate">{documento.archivo.name}</span>
-                    <span className="text-[11px] text-[#9CA3AF]">{formatearTamano(documento.archivo.size)}</span>
-                  </div>
-                  <button type="button" className="w-6 h-6 rounded-full border border-[#E5E7EB] bg-[#F3F4F6] text-[#6B7280] text-base leading-none cursor-pointer flex items-center justify-center shrink-0 hover:bg-[#FEE2E2] hover:text-[#EF4444] hover:border-[#FECACA] transition-all" onClick={() => { setDocumento((p) => ({ ...p, archivo: null })); setErrorArchivo(''); }} aria-label="Quitar archivo">×</button>
-                </div>
-              ) : (
-                <div
-                  className={`border-2 border-dashed rounded-lg py-8 px-6 bg-[#F9FAFB] flex flex-col items-center gap-2 cursor-pointer text-center transition-colors ${dragOver ? 'border-[#B91C1C] bg-[#FEF2F2]' : 'border-[#D1D5DB] hover:border-[#B91C1C] hover:bg-[#FEF2F2]'}`}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Zona de subida de archivos"
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
-                >
-                  <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={1.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                  <p className="text-[13px] text-[#6B7280] m-0">Arrastra tu archivo aquí o <span className="text-[#B91C1C] font-semibold cursor-pointer">haz clic para seleccionar</span></p>
-                  <p className="text-[11px] text-[#9CA3AF] m-0">PDF, DOC o DOCX • Máximo 25 MB</p>
-                </div>
-              )}
-              <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} aria-hidden="true" />
-              {errorArchivo && <p className={errorCls} role="alert">{errorArchivo}</p>}
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -464,8 +497,8 @@ export default function RegistrarProyecto() {
               <span className={cardTituloCls}>Categorización</span>
             </div>
             <div className={campoMb}>
-              <label htmlFor="rp-materia" className={labelCls}>MATERIA</label>
-              <select id="rp-materia" className={selectCls} value={idMateria} onChange={(e) => setIdMateria(e.target.value)}>
+              <label htmlFor="ep-materia" className={labelCls}>MATERIA</label>
+              <select id="ep-materia" className={selectCls} value={idMateria} onChange={(e) => setIdMateria(e.target.value)}>
                 <option value="">Selecciona una materia</option>
                 {materiasActivas.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
               </select>
@@ -505,8 +538,8 @@ export default function RegistrarProyecto() {
               <span className={cardTituloCls}>Visibilidad</span>
             </div>
             <div className={campoMb}>
-              <label htmlFor="rp-visibilidad" className={labelCls}>NIVEL DE VISIBILIDAD</label>
-              <select id="rp-visibilidad" className={selectCls} value={idVisibilidad} onChange={(e) => setIdVisibilidad(Number(e.target.value))}>
+              <label htmlFor="ep-visibilidad" className={labelCls}>NIVEL DE VISIBILIDAD</label>
+              <select id="ep-visibilidad" className={selectCls} value={idVisibilidad} onChange={(e) => setIdVisibilidad(Number(e.target.value))}>
                 {NIVELES_VISIBILIDAD.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
               </select>
               <p className={ayudaCls}>{DESCRIPCIONES_VISIBILIDAD[idVisibilidad]}</p>
@@ -520,21 +553,21 @@ export default function RegistrarProyecto() {
       </div>
 
       <div className="flex justify-end items-center gap-3 mt-6 pt-4">
-        <button type="button" className="px-5 py-2.5 bg-white text-[#374151] border border-[#D1D5DB] rounded-lg font-sans text-sm font-medium cursor-pointer transition-colors hover:bg-[#F9FAFB] disabled:opacity-60 disabled:cursor-not-allowed" onClick={() => navigate('/estudiante/dashboard')} disabled={registrando}>Cancelar</button>
-        <button type="button" className="inline-flex items-center gap-1.5 px-[22px] py-2.5 bg-[#B91C1C] text-white border-none rounded-lg font-sans text-sm font-bold cursor-pointer transition-all hover:bg-[#991B1B] hover:-translate-y-px disabled:opacity-70 disabled:cursor-not-allowed disabled:translate-y-0" onClick={handleClickRegistrar} disabled={registrando} aria-busy={registrando}>
-          {registrando ? (
+        <button type="button" className="px-5 py-2.5 bg-white text-[#374151] border border-[#D1D5DB] rounded-lg font-sans text-sm font-medium cursor-pointer transition-colors hover:bg-[#F9FAFB] disabled:opacity-60 disabled:cursor-not-allowed" onClick={() => navigate(`/estudiante/mis-proyectos/${id}`)} disabled={guardando}>Cancelar</button>
+        <button type="button" className="inline-flex items-center gap-1.5 px-[22px] py-2.5 bg-[#B91C1C] text-white border-none rounded-lg font-sans text-sm font-bold cursor-pointer transition-all hover:bg-[#991B1B] hover:-translate-y-px disabled:opacity-70 disabled:cursor-not-allowed disabled:translate-y-0" onClick={handleClickGuardar} disabled={guardando} aria-busy={guardando}>
+          {guardando ? (
             <>
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Registrando...
+              Guardando...
             </>
           ) : (
             <>
-              Registrar Proyecto
+              Guardar Cambios
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </>
           )}
         </button>
       </div>
-    </>
+    </div>
   );
 }

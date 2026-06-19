@@ -4,6 +4,7 @@ import { lineasService } from '../services/lineas.service';
 // MOCK DATA - reemplazado por llamada real a lineasService
 // import { LINEAS_MOCK } from '../mocks/lineas';
 import FormularioAdmin, { CampoTexto, CampoTextarea, CampoToggle } from '../components/ui/FormularioAdmin';
+import { useAlertaContext } from '../context/AlertaContext';
 
 interface LineaInvestigacionFormData {
   nombre: string;
@@ -14,6 +15,7 @@ interface LineaInvestigacionFormData {
 export default function FormularioLineaInvestigacion() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { mostrarAlerta } = useAlertaContext();
   const esEdicion = !!id;
 
   const [datos, setDatos] = useState<LineaInvestigacionFormData>({
@@ -21,7 +23,6 @@ export default function FormularioLineaInvestigacion() {
   });
   const [errores, setErrores] = useState<Partial<Record<keyof LineaInvestigacionFormData, string>>>({});
   const [guardando, setGuardando] = useState(false);
-  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [cargandoDato, setCargandoDato] = useState(false);
 
   useEffect(() => {
@@ -32,9 +33,9 @@ export default function FormularioLineaInvestigacion() {
       .then((linea) =>
         setDatos({ nombre: linea.nombre, descripcion: linea.descripcion ?? '', activa: linea.activa })
       )
-      .catch(() => setErrorGeneral('No se pudo cargar la línea de investigación. Puede haber sido eliminada.'))
+      .catch(() => mostrarAlerta({ mensaje: 'No se pudo cargar la línea de investigación. Puede haber sido eliminada.', variante: 'error' }))
       .finally(() => setCargandoDato(false));
-  }, [id, esEdicion]);
+  }, [id, esEdicion, mostrarAlerta]);
 
   const handleCampo = <K extends keyof LineaInvestigacionFormData>(
     campo: K,
@@ -64,7 +65,6 @@ export default function FormularioLineaInvestigacion() {
   const handleGuardar = async () => {
     if (!validar()) return;
     setGuardando(true);
-    setErrorGeneral(null);
     try {
       if (esEdicion && id) {
         await lineasService.actualizar(id, {
@@ -80,12 +80,11 @@ export default function FormularioLineaInvestigacion() {
           creadoPor: obtenerUsuarioId(),
         });
       }
+      mostrarAlerta({ mensaje: esEdicion ? 'Línea de investigación actualizada correctamente.' : 'Línea de investigación creada correctamente.', variante: 'exito' });
       navigate('/admin/lineas-investigacion');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
-      setErrorGeneral(
-        axiosErr.response?.data?.message ?? 'No se pudo guardar la línea de investigación. Intenta de nuevo.'
-      );
+      mostrarAlerta({ mensaje: axiosErr.response?.data?.message ?? 'No se pudo guardar la línea de investigación. Intenta de nuevo.', variante: 'error' });
     } finally {
       setGuardando(false);
     }
@@ -105,19 +104,6 @@ export default function FormularioLineaInvestigacion() {
       onGuardar={handleGuardar}
       guardando={guardando}
     >
-      {errorGeneral && (
-        <div
-          style={{
-            background: '#FEF2F2',
-            borderLeft: '3px solid #EF4444',
-            padding: '12px 16px',
-            marginBottom: 16,
-          }}
-          role="alert"
-        >
-          {errorGeneral}
-        </div>
-      )}
       <CampoTexto
         label="Nombre"
         valor={datos.nombre}

@@ -5,6 +5,9 @@ import { materiasService } from '../services/materias.service';
 import PageHeader from '../components/ui/PageHeader';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import Paginacion from '../components/ui/Paginacion';
+import ModalConfirmacion from '../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../context/AlertaContext';
 
 const REGISTROS_POR_PAGINA = 10;
 
@@ -28,12 +31,14 @@ function formatearFecha(iso: string): string {
 
 export default function AdminMaterias() {
   const navigate = useNavigate();
+  const { mostrarAlerta } = useAlertaContext();
   const [pagina, setPagina] = useState(1);
   const [materias, setMaterias] = useState<MateriaResponse[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalElementos, setTotalElementos] = useState(0);
+  const { modalProps, abrirModal } = useModalConfirmacion();
 
   const cargarMaterias = useCallback(async (pagActual: number) => {
     setCargando(true);
@@ -43,16 +48,31 @@ export default function AdminMaterias() {
       setMaterias(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch { setError('Error al cargar los datos. Intenta de nuevo.'); }
+    } catch {
+      setError('Error al cargar los datos.');
+      mostrarAlerta({ mensaje: 'Error al cargar las materias. Intenta de nuevo.', variante: 'error' });
+    }
     finally { setCargando(false); }
-  }, []);
+  }, [mostrarAlerta]);
 
   useEffect(() => { cargarMaterias(pagina); }, [pagina, cargarMaterias]);
 
-  const handleEliminar = async (materia: MateriaResponse) => {
-    if (!window.confirm(`¿Eliminar la materia ${materia.nombre}? Esta acción no se puede deshacer.`)) return;
-    try { await materiasService.eliminar(materia.id); await cargarMaterias(pagina); }
-    catch { setError('No se pudo eliminar la materia. Intenta de nuevo.'); }
+  const handleEliminar = (materia: MateriaResponse) => {
+    abrirModal({
+      titulo: 'Eliminar materia',
+      mensaje: `¿Eliminar la materia "${materia.nombre}"? Esta acción no se puede deshacer.`,
+      labelConfirmar: 'Eliminar',
+      variante: 'peligro',
+      onConfirmar: async () => {
+        try {
+          await materiasService.eliminar(materia.id);
+          mostrarAlerta({ mensaje: `Materia "${materia.nombre}" eliminada correctamente.`, variante: 'exito' });
+          await cargarMaterias(pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo eliminar la materia. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
   const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
@@ -60,6 +80,7 @@ export default function AdminMaterias() {
 
   return (
     <div>
+      <ModalConfirmacion {...modalProps} />
       <PageHeader
         titulo="Gestión de Materias"
         subtitulo="Administra el catálogo de asignaturas del programa académico."
@@ -68,13 +89,6 @@ export default function AdminMaterias() {
       />
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
-        {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
-            <span className="flex-1">{error}</span>
-            <button onClick={() => cargarMaterias(pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
-          </div>
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -87,6 +101,8 @@ export default function AdminMaterias() {
             <tbody>
               {cargando ? (
                 <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">Cargando...</div></td></tr>
+              ) : error ? (
+                <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarMaterias(pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></div></td></tr>
               ) : materias.length === 0 ? (
                 <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">No hay materias registradas</div></td></tr>
               ) : (

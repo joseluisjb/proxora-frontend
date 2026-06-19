@@ -67,6 +67,7 @@ export interface ProyectoResponse {
   registradoPor: UsuarioResumen
   integrantes: UsuarioResumen[]
   directores: UsuarioResumen[]
+  evaluadores: UsuarioResumen[]
   lineas: LineaResumen[]
   creadoEn: string
   actualizadoEn: string
@@ -119,6 +120,19 @@ export interface EvaluadorAsignacionRequest {
   idAsignadoPor: string
 }
 
+export interface ProyectoUpdateRequest {
+  titulo?: string
+  resumen?: string
+  idSemestre?: string | null
+  idMateria?: string | null
+  idEstado?: number
+  idVisibilidad?: number
+  integrantesIds?: string[]
+  directoresIds?: string[]
+  lineasIds?: string[]
+  evaluadoresIds?: string[]
+}
+
 export interface SemestreRequest {
   nombre: string
   activo?: boolean
@@ -148,5 +162,30 @@ export interface VersionDocumentoResponse {
   tamanoBytes: number | null
   mimeType: string | null
   subidoPor: UsuarioResumen
+  creadoEn: string
+}
+
+export interface ProyectoDetalleResponse {
+  id: string
+  titulo: string
+  resumen: string
+  semestre: string | null
+  materia: string | null
+  estado: 'en_desarrollo' | 'finalizado' | 'bajo_revision' | 'retrasado'
+  visibilidad: 'solo_metadatos' | 'lectura' | 'lectura_descarga'
+  directores: UsuarioResumen[]
+  integrantes: UsuarioResumen[]
+  lineas: LineaInvestigacionResponse[]
+  evaluadores: UsuarioResumen[]
+  versiones: VersionDocumentoResponse[]
+  creadoEn: string
+}
+
+export interface EvaluacionResponse {
+  id: string
+  idProyecto: string
+  docente: UsuarioResumen
+  calificacion: number
+  comentario: string
   creadoEn: string
 }

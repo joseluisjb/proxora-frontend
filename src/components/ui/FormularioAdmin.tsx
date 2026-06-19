@@ -51,6 +51,7 @@ export default function FormularioAdmin({
             onClick={onGuardar}
             disabled={guardando}
           >
+            {guardando && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
             {guardando ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
