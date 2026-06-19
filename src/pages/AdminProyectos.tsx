@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse } from '../types/api.types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse } from '../types/api.types';
 import { proyectosService } from '../services/proyectos.service';
 import { semestresService } from '../services/semestres.service';
 import { materiasService } from '../services/materias.service';
@@ -54,13 +54,21 @@ export default function AdminProyectos() {
   const [semestres, setSemestres] = useState<SemestreResponse[]>([]);
   const [materias, setMaterias] = useState<MateriaResponse[]>([]);
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([]);
+  const [estados, setEstados] = useState<EstadoProyectoResponse[]>([]);
   const { modalProps, abrirModal } = useModalConfirmacion();
   const { mostrarAlerta } = useAlertaContext();
+  const estadosMapRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     semestresService.listar({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {});
     materiasService.listar({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {});
     lineasService.listar({ size: 100 }).then((r) => setLineas(r.content)).catch(() => {});
+    proyectosService.listarEstados()
+      .then((lista) => {
+        estadosMapRef.current = Object.fromEntries(lista.map((e) => [e.nombre, e.id]));
+        setEstados(lista);
+      })
+      .catch(() => {});
   }, []);
 
   const cargarProyectos = useCallback(async (f: FiltrosValores, pagActual: number) => {
@@ -74,8 +82,7 @@ export default function AdminProyectos() {
       else if (modo === 'semestre') resultado = await proyectosService.listarPorSemestre(f.semestre, params);
       else if (modo === 'materia') resultado = await proyectosService.listarPorMateria(f.materia, params);
       else if (modo === 'estado') {
-        const estadoMap: Record<string, number> = { en_desarrollo: 1, finalizado: 2, bajo_revision: 3, retrasado: 4 };
-        resultado = await proyectosService.listarPorEstado(estadoMap[f.estado] ?? 1, params);
+        resultado = await proyectosService.listarPorEstado(estadosMapRef.current[f.estado] ?? 1, params);
       } else resultado = await proyectosService.listar({ ...params, sort: 'creadoEn,desc' });
       setProyectos(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
@@ -127,6 +134,7 @@ export default function AdminProyectos() {
         semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
         materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
         lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
+        estados={estados}
       />
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">

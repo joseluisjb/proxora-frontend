@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { misProyectosService } from '../../services/estudiante/misProyectos.service';
-import type { ProyectoResponse } from '../../types/api.types';
+import { proyectosService } from '../../services/proyectos.service';
+import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.types';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import Paginacion from '../../components/ui/Paginacion';
@@ -17,13 +18,12 @@ const ESTADO_CONFIG: Record<ProyectoResponse['estado'], { label: string; clases:
   finalizado:    { label: 'Finalizado',    clases: 'text-[#1D4ED8] bg-[#DBEAFE]' },
 };
 
-const OPCIONES_ESTADO = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'en_desarrollo', label: 'En Desarrollo' },
-  { value: 'bajo_revision', label: 'Bajo Revisión' },
-  { value: 'retrasado',     label: 'Retrasado' },
-  { value: 'finalizado',    label: 'Finalizado' },
-];
+const ETIQUETA_ESTADO: Record<string, string> = {
+  en_desarrollo: 'En Desarrollo',
+  finalizado:    'Finalizado',
+  bajo_revision: 'Bajo Revisión',
+  retrasado:     'Retrasado',
+};
 
 function MenuTarjeta({ onEditar, onEliminar }: { onEditar: () => void; onEliminar: () => void }) {
   const [abierto, setAbierto] = useState(false);
@@ -179,6 +179,7 @@ export default function MisProyectos() {
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [estadosDisponibles, setEstadosDisponibles] = useState<EstadoProyectoResponse[]>([]);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -200,6 +201,10 @@ export default function MisProyectos() {
   }, [usuario]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  useEffect(() => {
+    proyectosService.listarEstados().then(setEstadosDisponibles).catch(() => {});
+  }, []);
 
   useEffect(() => { setPaginaActual(1); }, [busqueda, filtroEstado]);
 
@@ -270,8 +275,9 @@ export default function MisProyectos() {
               onChange={(e) => setFiltroEstado(e.target.value)}
               className="px-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] focus:outline-none focus:border-[#B91C1C] transition-colors bg-white cursor-pointer shrink-0"
             >
-              {OPCIONES_ESTADO.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+              <option value="">Todos los estados</option>
+              {estadosDisponibles.map((e) => (
+                <option key={e.id} value={e.nombre}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
               ))}
             </select>
           </div>

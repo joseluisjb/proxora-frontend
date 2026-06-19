@@ -120,6 +120,11 @@ export interface EvaluadorAsignacionRequest {
   idAsignadoPor: string
 }
 
+export interface EstadoProyectoResponse {
+  id: number
+  nombre: string
+}
+
 export interface ProyectoUpdateRequest {
   titulo?: string
   resumen?: string

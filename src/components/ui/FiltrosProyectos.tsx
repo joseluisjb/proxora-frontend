@@ -1,5 +1,6 @@
 import BarraBusqueda from './BarraBusqueda';
 import BotonPrimario from './BotonPrimario';
+import type { EstadoProyectoResponse } from '../../types/api.types';
 
 interface OpcionSelect {
   id: string;
@@ -22,15 +23,15 @@ interface FiltrosProyectosProps {
   semestres: OpcionSelect[];
   materias: OpcionSelect[];
   lineas: OpcionSelect[];
+  estados: EstadoProyectoResponse[];
 }
 
-const ESTADOS = [
-  { value: '', label: 'Todos' },
-  { value: 'en_desarrollo', label: 'En desarrollo' },
-  { value: 'finalizado',    label: 'Finalizado' },
-  { value: 'bajo_revision', label: 'Bajo revisión' },
-  { value: 'retrasado',     label: 'Retrasado' },
-];
+const ETIQUETA_ESTADO: Record<string, string> = {
+  en_desarrollo: 'En desarrollo',
+  finalizado:    'Finalizado',
+  bajo_revision: 'Bajo revisión',
+  retrasado:     'Retrasado',
+};
 
 const VISIBILIDADES = [
   { value: '',               label: 'Todos' },
@@ -49,6 +50,7 @@ export default function FiltrosProyectos({
   semestres,
   materias,
   lineas,
+  estados,
 }: FiltrosProyectosProps) {
   return (
     <div className="flex flex-wrap gap-2.5 items-end p-4 bg-white rounded-lg border border-[#EBEBEB] mb-5 animate-fade-in">
@@ -87,7 +89,10 @@ export default function FiltrosProyectos({
       <div className="flex flex-col gap-1">
         <label className={labelCls}>Estado</label>
         <select className={selectCls} value={valores.estado} onChange={(e) => onChange('estado', e.target.value)} aria-label="Filtrar por estado">
-          {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+          <option value="">Todos</option>
+          {estados.map((e) => (
+            <option key={e.id} value={e.nombre}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
+          ))}
         </select>
       </div>
 

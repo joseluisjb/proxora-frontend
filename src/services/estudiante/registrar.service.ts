@@ -10,6 +10,7 @@ import type {
   ProyectoCreateRequest,
   VersionDocumentoCreateRequest,
   EvaluadorAsignacionRequest,
+  EstadoProyectoResponse,
 } from '../../types/api.types'
 
 export const registrarService = {
@@ -66,5 +67,10 @@ export const registrarService = {
   listarEstudiantes: (params: { page?: number; size?: number }) =>
     api
       .get<PaginatedResponse<UsuarioResponse>>('/usuarios/rol/estudiante', { params })
+      .then((r) => r.data),
+
+  listarEstados: () =>
+    api
+      .get<EstadoProyectoResponse[]>('/catalogos/estados-proyecto')
       .then((r) => r.data),
 }

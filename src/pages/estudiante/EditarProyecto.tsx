@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { UsuarioResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse } from '../../types/api.types';
+import type { UsuarioResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse } from '../../types/api.types';
 import { registrarService } from '../../services/estudiante/registrar.service';
 import { misProyectosService } from '../../services/estudiante/misProyectos.service';
 import { useAuth } from '../../context/AuthContext';
@@ -27,18 +27,11 @@ const VISIBILIDAD_A_ID: Record<string, number> = {
   lectura_descarga: 3,
 };
 
-const ESTADOS_PROYECTO = [
-  { id: 1, nombre: 'En Desarrollo' },
-  { id: 2, nombre: 'Bajo Revisión' },
-  { id: 3, nombre: 'Retrasado' },
-  { id: 4, nombre: 'Finalizado' },
-];
-
-const ESTADO_A_ID: Record<string, number> = {
-  en_desarrollo: 1,
-  bajo_revision: 2,
-  retrasado: 3,
-  finalizado: 4,
+const ETIQUETA_ESTADO: Record<string, string> = {
+  en_desarrollo: 'En Desarrollo',
+  bajo_revision: 'Bajo Revisión',
+  retrasado: 'Retrasado',
+  finalizado: 'Finalizado',
 };
 
 export default function EditarProyecto() {
@@ -53,7 +46,8 @@ export default function EditarProyecto() {
   const [resumen, setResumen] = useState('');
   const [idSemestre, setIdSemestre] = useState('');
   const [idMateria, setIdMateria] = useState('');
-  const [idEstado, setIdEstado] = useState(1);
+  const [idEstado, setIdEstado] = useState(0);
+  const [estadosProyecto, setEstadosProyecto] = useState<EstadoProyectoResponse[]>([]);
   const [lineasIds, setLineasIds] = useState<string[]>([]);
   const [idVisibilidad, setIdVisibilidad] = useState(2);
 
@@ -97,17 +91,20 @@ export default function EditarProyecto() {
       registrarService.listarLineasActivas({ size: 100 }).catch(() => registrarService.listarLineas({ size: 100 })),
       registrarService.listarDocentes({ size: 50 }).catch(() => ({ content: [] as UsuarioResponse[] })),
       registrarService.listarEstudiantes({ size: 200 }).catch(() => ({ content: [] as UsuarioResponse[] })),
+      registrarService.listarEstados().catch(() => [] as EstadoProyectoResponse[]),
     ])
-      .then(([proyecto, semestres, materias, lineas, docentes, estudiantes]) => {
+      .then(([proyecto, semestres, materias, lineas, docentes, estudiantes, estados]) => {
         setSemestresActivos(semestres.content);
         setMateriasActivas(materias.content);
         setTodasLineas(lineas.content);
         setTodoDocentes(docentes.content);
         setTodosEstudiantes(estudiantes.content);
+        setEstadosProyecto(estados);
 
         setTitulo(proyecto.titulo);
         setResumen(proyecto.resumen);
-        setIdEstado(ESTADO_A_ID[proyecto.estado] ?? 1);
+        const estadoEncontrado = estados.find((e) => e.nombre === proyecto.estado);
+        if (estadoEncontrado) setIdEstado(estadoEncontrado.id);
         setIdVisibilidad(VISIBILIDAD_A_ID[proyecto.visibilidad] ?? 2);
         setLineasIds(proyecto.lineas.map((l) => l.id));
 
@@ -331,7 +328,9 @@ export default function EditarProyecto() {
             <div className={campoMb}>
               <label htmlFor="ep-estado" className={labelCls}>ESTADO DEL PROYECTO</label>
               <select id="ep-estado" className={selectCls} value={idEstado} onChange={(e) => setIdEstado(Number(e.target.value))}>
-                {ESTADOS_PROYECTO.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                {estadosProyecto.map((e) => (
+                  <option key={e.id} value={e.id}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
+                ))}
               </select>
             </div>
             <div className={campoMb}>

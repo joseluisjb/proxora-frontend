@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   ProyectoResponse,
   SemestreResponse,
   MateriaResponse,
   LineaInvestigacionResponse,
+  EstadoProyectoResponse,
 } from '../../types/api.types';
 import { dashboardService } from '../../services/estudiante/dashboard.service';
+import { proyectosService } from '../../services/proyectos.service';
 import { GrillaProyectos } from '../../components/proyecto/GrillaProyectos';
 import FiltrosProyectos from '../../components/ui/FiltrosProyectos';
 import Paginacion from '../../components/ui/Paginacion';
@@ -33,10 +35,6 @@ function resolverModo(f: FiltrosValores): ModoConsulta {
   return 'todos'
 }
 
-const ESTADO_MAP: Record<string, number> = {
-  en_desarrollo: 1, finalizado: 2, bajo_revision: 3, retrasado: 4,
-}
-
 export default function DashboardEstudiante() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { mostrarAlerta } = useAlertaContext();
@@ -56,6 +54,8 @@ export default function DashboardEstudiante() {
   const [semestres, setSemestres] = useState<SemestreResponse[]>([])
   const [materias, setMaterias] = useState<MateriaResponse[]>([])
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([])
+  const [estados, setEstados] = useState<EstadoProyectoResponse[]>([])
+  const estadosMapRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (searchParams.get('registrado') === 'true') {
@@ -68,6 +68,12 @@ export default function DashboardEstudiante() {
     dashboardService.listarSemestres({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {})
     dashboardService.listarMaterias({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {})
     dashboardService.listarLineas({ size: 100 }).then((r) => setLineas(r.content)).catch(() => {})
+    proyectosService.listarEstados()
+      .then((lista) => {
+        estadosMapRef.current = Object.fromEntries(lista.map((e) => [e.nombre, e.id]))
+        setEstados(lista)
+      })
+      .catch(() => {})
   }, [])
 
   const cargarProyectos = useCallback(async (f: FiltrosValores, pagina: number) => {
@@ -81,7 +87,7 @@ export default function DashboardEstudiante() {
       if (modo === 'busqueda') resultado = await dashboardService.buscarProyectos(f.busqueda.trim(), params)
       else if (modo === 'semestre') resultado = await dashboardService.listarPorSemestre(f.semestre, params)
       else if (modo === 'materia') resultado = await dashboardService.listarPorMateria(f.materia, params)
-      else if (modo === 'estado') resultado = await dashboardService.listarPorEstado(ESTADO_MAP[f.estado] ?? 1, params)
+      else if (modo === 'estado') resultado = await dashboardService.listarPorEstado(estadosMapRef.current[f.estado] ?? 1, params)
       else resultado = await dashboardService.listarProyectos({ ...params, sort: 'creadoEn,desc' })
 
       let contenido = resultado.content
@@ -115,6 +121,7 @@ export default function DashboardEstudiante() {
         semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
         materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
         lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
+        estados={estados}
       />
 
       <div className="mt-6 animate-fade-in">

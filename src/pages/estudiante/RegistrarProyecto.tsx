@@ -73,6 +73,7 @@ export default function RegistrarProyecto() {
   const [semestresActivos, setSemestresActivos] = useState<SemestreResponse[]>([]);
   const [materiasActivas, setMateriasActivas] = useState<MateriaResponse[]>([]);
 
+  const [idEstadoCreacion, setIdEstadoCreacion] = useState<number | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const { modalProps, abrirModal } = useModalConfirmacion();
   const { mostrarAlerta } = useAlertaContext();
@@ -98,6 +99,12 @@ export default function RegistrarProyecto() {
       .catch(() => registrarService.listarLineas({ size: 100 }).then((r) => setTodasLineas(r.content)).catch(() => {}));
     registrarService.listarDocentes({ size: 50 }).then((r) => setTodoDocentes(r.content)).catch(() => {});
     registrarService.listarEstudiantes({ size: 200 }).then((r) => setTodosEstudiantes(r.content)).catch(() => {});
+    registrarService.listarEstados()
+      .then((estados) => {
+        const enDesarrollo = estados.find((e) => e.nombre === 'en_desarrollo');
+        if (enDesarrollo) setIdEstadoCreacion(enDesarrollo.id);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -150,7 +157,7 @@ export default function RegistrarProyecto() {
   const handleSubmit = async () => {
     setErrores({}); setRegistrando(true);
     try {
-      const proyecto = await registrarService.crearProyecto({ titulo: titulo.trim(), resumen: resumen.trim(), idSemestre: idSemestre || null, idMateria: idMateria || null, idEstado: 1, idVisibilidad: idVisibilidad, idRegistradoPor: usuario?.id ?? '', integrantesIds: integrantesSeleccionados.map((i) => i.id), directoresIds: directoresSeleccionados.map((d) => d.id), lineasIds: lineasIds });
+      const proyecto = await registrarService.crearProyecto({ titulo: titulo.trim(), resumen: resumen.trim(), idSemestre: idSemestre || null, idMateria: idMateria || null, idEstado: idEstadoCreacion ?? 1, idVisibilidad: idVisibilidad, idRegistradoPor: usuario?.id ?? '', integrantesIds: integrantesSeleccionados.map((i) => i.id), directoresIds: directoresSeleccionados.map((d) => d.id), lineasIds: lineasIds });
       if (documento.archivo) {
         await registrarService.crearVersion(proyecto.id, { idTipo: documento.idTipo, etiquetaVersion: documento.etiquetaVersion.trim(), rutaS3: `proyectos/${proyecto.id}/versiones/${crypto.randomUUID()}/${documento.archivo.name}`, nombreArchivo: documento.archivo.name, tamanoBytes: documento.archivo.size, mimeType: documento.archivo.type, idSubidoPor: usuario?.id ?? '' });
       }
