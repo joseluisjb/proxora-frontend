@@ -3,6 +3,7 @@ import type {
   PaginatedResponse,
   ProyectoResponse,
   VersionDocumentoResponse,
+  EvaluacionResponse,
   ProyectoCreateRequest,
   VersionDocumentoCreateRequest,
   EvaluadorAsignacionRequest,
@@ -40,6 +41,17 @@ export const proyectosService = {
   obtenerVersiones: (id: string) =>
     api.get<VersionDocumentoResponse[]>(`/proyectos/${id}/versiones`).then((r) => r.data),
 
+  descargarVersion: async (idProyecto: string, idVersion: string) => {
+    const response = await api.get(`/proyectos/${idProyecto}/versiones/${idVersion}/download`, {
+      responseType: 'blob',
+    });
+    const mimeType = response.headers['content-type'] ?? 'application/octet-stream';
+    const blob = new Blob([response.data], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  },
+
   eliminar: (id: string) =>
     api.delete(`/proyectos/${id}`).then(() => undefined),
 
@@ -51,4 +63,10 @@ export const proyectosService = {
 
   asignarEvaluador: (idProyecto: string, data: EvaluadorAsignacionRequest) =>
     api.post(`/proyectos/${idProyecto}/evaluaciones/evaluadores`, data).then((r) => r.data),
+
+  listarPorIntegrante: (idUsuario: string, params: { page?: number; size?: number; sort?: string }) =>
+    api.get<PaginatedResponse<ProyectoResponse>>(`/proyectos/integrante/${idUsuario}`, { params }).then((r) => r.data),
+
+  obtenerEvaluaciones: (idProyecto: string) =>
+    api.get<EvaluacionResponse[]>(`/proyectos/${idProyecto}/evaluaciones`).then((r) => r.data),
 }

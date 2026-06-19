@@ -17,44 +17,73 @@ export default function Paginacion({
 }: PaginacionProps) {
   const inicio = (paginaActual - 1) * registrosPorPagina + 1;
   const fin = Math.min(paginaActual * registrosPorPagina, totalRegistros);
-  const paginas = Array.from({ length: totalPaginas }, (_, i) => i + 1);
 
-  const btnBase = "w-8 h-8 rounded-md border border-[#E0E0E0] bg-white font-sans text-[13px] cursor-pointer flex items-center justify-center text-[#3D3D3D] transition-all hover:bg-[#F2F2F2] hover:-translate-y-px active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0";
+  const items: (number | 'dots')[] = [];
+  if (totalPaginas <= 7) {
+    for (let i = 1; i <= totalPaginas; i++) items.push(i);
+  } else {
+    items.push(1);
+    if (paginaActual > 3) items.push('dots');
+    const desde = Math.max(2, paginaActual - 1);
+    const hasta = Math.min(totalPaginas - 1, paginaActual + 1);
+    for (let i = desde; i <= hasta; i++) items.push(i);
+    if (paginaActual < totalPaginas - 2) items.push('dots');
+    items.push(totalPaginas);
+  }
+
+  const btnBase = "w-8 h-8 rounded-lg border text-[13px] font-medium cursor-pointer flex items-center justify-center transition-all duration-150 select-none";
+  const btnInactivo = `${btnBase} border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#F9FAFB] hover:border-[#D1D5DB] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-[#E5E7EB]`;
+  const btnActivo = `${btnBase} border-[#B91C1C] bg-[#B91C1C] text-white`;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3.5 border-t border-[#F0F0F0]">
-      <span className="text-xs text-[#6B6B6B]">
-        Mostrando {inicio}–{fin} de {totalRegistros} {labelEntidad}
-      </span>
+    <div className="flex flex-col items-center gap-2.5 py-1">
       <div className="flex items-center gap-1">
         <button
-          className={btnBase}
+          type="button"
+          className={btnInactivo}
           disabled={paginaActual === 1}
           onClick={() => onCambiarPagina(paginaActual - 1)}
           aria-label="Página anterior"
         >
-          ‹
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
-        {paginas.map((p) => (
-          <button
-            key={p}
-            className={`${btnBase} ${p === paginaActual ? 'bg-[#C0392B] text-white border-[#C0392B] hover:bg-[#C0392B]' : ''}`}
-            onClick={() => onCambiarPagina(p)}
-            aria-label={`Página ${p}`}
-            aria-current={p === paginaActual ? 'page' : undefined}
-          >
-            {p}
-          </button>
-        ))}
+
+        {items.map((item, idx) =>
+          item === 'dots' ? (
+            <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-[13px] text-[#9CA3AF] select-none">
+              …
+            </span>
+          ) : (
+            <button
+              key={item}
+              type="button"
+              className={item === paginaActual ? btnActivo : btnInactivo}
+              onClick={() => onCambiarPagina(item as number)}
+              aria-label={`Página ${item}`}
+              aria-current={item === paginaActual ? 'page' : undefined}
+            >
+              {item}
+            </button>
+          )
+        )}
+
         <button
-          className={btnBase}
+          type="button"
+          className={btnInactivo}
           disabled={paginaActual === totalPaginas}
           onClick={() => onCambiarPagina(paginaActual + 1)}
           aria-label="Página siguiente"
         >
-          ›
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
+      <span className="text-[12px] text-[#9CA3AF]">
+        Mostrando {inicio}–{fin} de {totalRegistros} {labelEntidad}
+      </span>
     </div>
   );
 }

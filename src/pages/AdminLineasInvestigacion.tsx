@@ -6,6 +6,9 @@ import PageHeader from '../components/ui/PageHeader';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import Paginacion from '../components/ui/Paginacion';
 import BotonPrimario from '../components/ui/BotonPrimario';
+import ModalConfirmacion from '../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../context/AlertaContext';
 
 const REGISTROS_POR_PAGINA = 10;
 
@@ -29,12 +32,14 @@ function formatearFecha(iso: string): string {
 
 export default function AdminLineasInvestigacion() {
   const navigate = useNavigate();
+  const { mostrarAlerta } = useAlertaContext();
   const [pagina, setPagina] = useState(1);
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalElementos, setTotalElementos] = useState(0);
+  const { modalProps, abrirModal } = useModalConfirmacion();
 
   const cargarLineas = useCallback(async (pagActual: number) => {
     setCargando(true);
@@ -44,16 +49,31 @@ export default function AdminLineasInvestigacion() {
       setLineas(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch { setError('Error al cargar los datos. Intenta de nuevo.'); }
+    } catch {
+      setError('Error al cargar los datos. Intenta de nuevo.');
+      mostrarAlerta({ mensaje: 'Error al cargar las líneas de investigación. Intenta de nuevo.', variante: 'error' });
+    }
     finally { setCargando(false); }
-  }, []);
+  }, [mostrarAlerta]);
 
   useEffect(() => { cargarLineas(pagina); }, [pagina, cargarLineas]);
 
-  const handleEliminar = async (linea: LineaInvestigacionResponse) => {
-    if (!window.confirm(`¿Eliminar la línea ${linea.nombre}? Esta acción no se puede deshacer.`)) return;
-    try { await lineasService.eliminar(linea.id); await cargarLineas(pagina); }
-    catch { setError('No se pudo eliminar la línea de investigación. Intenta de nuevo.'); }
+  const handleEliminar = (linea: LineaInvestigacionResponse) => {
+    abrirModal({
+      titulo: 'Eliminar línea de investigación',
+      mensaje: `¿Eliminar la línea "${linea.nombre}"? Esta acción no se puede deshacer.`,
+      labelConfirmar: 'Eliminar',
+      variante: 'peligro',
+      onConfirmar: async () => {
+        try {
+          await lineasService.eliminar(linea.id);
+          mostrarAlerta({ mensaje: `Línea "${linea.nombre}" eliminada correctamente.`, variante: 'exito' });
+          await cargarLineas(pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo eliminar la línea de investigación. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
   const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
@@ -61,16 +81,13 @@ export default function AdminLineasInvestigacion() {
 
   return (
     <div>
-      <PageHeader titulo="Líneas de Investigación" />
+      <ModalConfirmacion {...modalProps} />
+      <div className="flex items-center justify-between mb-4">
+        <PageHeader titulo="Líneas de Investigación" />
+        <BotonPrimario label="Nueva Línea de Investigación" onClick={() => navigate('/admin/lineas-investigacion/nueva')} />
+      </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
-        {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
-            <span className="flex-1">{error}</span>
-            <button onClick={() => cargarLineas(pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
-          </div>
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -83,6 +100,11 @@ export default function AdminLineasInvestigacion() {
             <tbody>
               {cargando ? (
                 <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">Cargando...</div></td></tr>
+              ) : error ? (
+                <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">
+                  No se pudo cargar los datos.{' '}
+                  <button onClick={() => cargarLineas(pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button>
+                </div></td></tr>
               ) : lineas.length === 0 ? (
                 <tr><td colSpan={3}><div className="text-center py-12 text-[#6B6B6B] text-sm">No hay líneas de investigación registradas</div></td></tr>
               ) : (
@@ -111,12 +133,7 @@ export default function AdminLineasInvestigacion() {
           </table>
         </div>
 
-        <div className="flex items-center border-t border-[#F0F0F0] px-4 py-3.5 gap-4">
-          <div className="flex-1">
-            <Paginacion paginaActual={pagina} totalPaginas={Math.max(totalPaginas, 1)} totalRegistros={totalElementos} registrosPorPagina={REGISTROS_POR_PAGINA} labelEntidad="líneas" onCambiarPagina={setPagina} />
-          </div>
-          <BotonPrimario label="Nueva Línea de Investigación" onClick={() => navigate('/admin/lineas-investigacion/nueva')} />
-        </div>
+        <Paginacion paginaActual={pagina} totalPaginas={Math.max(totalPaginas, 1)} totalRegistros={totalElementos} registrosPorPagina={REGISTROS_POR_PAGINA} labelEntidad="líneas" onCambiarPagina={setPagina} />
       </div>
     </div>
   );

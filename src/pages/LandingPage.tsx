@@ -13,6 +13,8 @@ import NavbarPublica from '../components/layout/NavbarPublica';
 import { GrillaProyectos } from '../components/proyecto/GrillaProyectos';
 import FiltrosProyectos from '../components/ui/FiltrosProyectos';
 import Paginacion from '../components/ui/Paginacion';
+import Alerta from '../components/ui/Alerta';
+import { useAlerta } from '../hooks/useAlerta';
 
 interface FiltrosValores {
   busqueda: string
@@ -41,6 +43,7 @@ const ESTADO_MAP: Record<string, number> = {
 }
 
 export default function LandingPage() {
+  const { alertaProps, mostrarAlerta } = useAlerta()
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -89,13 +92,15 @@ export default function LandingPage() {
       const axiosErr = err as { response?: { status?: number } }
       if (axiosErr.response?.status === 401) {
         setError('Los proyectos requieren autenticación. Inicia sesión para verlos.')
+        mostrarAlerta({ mensaje: 'Los proyectos requieren autenticación. Inicia sesión para verlos.', variante: 'advertencia' })
       } else {
         setError('Error al cargar los proyectos. Intenta de nuevo.')
+        mostrarAlerta({ mensaje: 'Error al cargar los proyectos. Intenta de nuevo.', variante: 'error' })
       }
     } finally {
       setCargando(false)
     }
-  }, [])
+  }, [mostrarAlerta])
 
   useEffect(() => {
     cargarProyectos(aplicados, paginaActual)
@@ -110,6 +115,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
+      <Alerta {...alertaProps} />
       <NavbarPublica />
 
       <div className="bg-white border-b border-[#E5E7EB] py-4 sticky top-14 z-[90]">

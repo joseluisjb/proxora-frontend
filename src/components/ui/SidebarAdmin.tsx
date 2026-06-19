@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -83,13 +83,25 @@ export default function SidebarAdmin({ itemActivo: itemActivoProp }: SidebarAdmi
   const { cerrarSesion } = useAuth();
   const itemActivo = itemActivoProp ?? itemActivoDesdeRuta(pathname);
 
+  const [estiloEntrada, setEstiloEntrada] = useState<React.CSSProperties>({
+    opacity: 0,
+    transform: 'translateX(-16px)',
+  });
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      setEstiloEntrada({ opacity: 1, transform: 'translateX(0)', transition: 'opacity 0.35s ease, transform 0.35s ease' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   const handleCerrarSesion = () => {
     cerrarSesion();
     navigate('/login');
   };
 
   return (
-    <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#EBEBEB] flex flex-col pb-4 z-[100] overflow-y-auto animate-slide-right">
+    <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#EBEBEB] flex flex-col pb-4 z-[100] overflow-y-auto overflow-x-hidden" style={estiloEntrada}>
       <div className="flex items-center gap-2.5 px-4 py-4 border-b border-[#F0F0F0]">
         <div className="w-10 h-10 bg-[#C0392B] text-white rounded-[10px] flex items-center justify-center text-base font-bold shrink-0">P</div>
         <div>

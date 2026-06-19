@@ -1,17 +1,13 @@
-import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { type ReactNode, useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export type ItemSidebarEstudiante =
+type ItemSidebarEstudiante =
   | 'mis-proyectos'
   | 'dashboard'
   | 'registrar'
   | 'documentos'
   | 'evaluaciones';
-
-export interface SidebarEstudianteProps {
-  itemActivo: ItemSidebarEstudiante;
-}
 
 interface NavItemEst {
   id: ItemSidebarEstudiante;
@@ -20,17 +16,16 @@ interface NavItemEst {
   icono: ReactNode;
 }
 
+function itemActivoDesdeRuta(pathname: string): ItemSidebarEstudiante {
+  if (pathname.startsWith('/estudiante/dashboard')) return 'dashboard';
+  if (pathname.startsWith('/estudiante/mis-proyectos')) return 'mis-proyectos';
+  if (pathname.startsWith('/estudiante/registrar')) return 'registrar';
+  if (pathname.startsWith('/estudiante/documentos')) return 'documentos';
+  if (pathname.startsWith('/estudiante/evaluaciones')) return 'evaluaciones';
+  return 'dashboard';
+}
+
 const NAV_ITEMS: NavItemEst[] = [
-  {
-    id: 'mis-proyectos',
-    label: 'Mis Proyectos',
-    path: '/estudiante/mis-proyectos',
-    icono: (
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    ),
-  },
   {
     id: 'dashboard',
     label: 'Dashboard',
@@ -38,6 +33,16 @@ const NAV_ITEMS: NavItemEst[] = [
     icono: (
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'mis-proyectos',
+    label: 'Mis Proyectos',
+    path: '/estudiante/mis-proyectos',
+    icono: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
       </svg>
     ),
   },
@@ -73,9 +78,23 @@ const NAV_ITEMS: NavItemEst[] = [
   },
 ];
 
-export default function SidebarEstudiante({ itemActivo }: SidebarEstudianteProps) {
+export default function SidebarEstudiante() {
   const navigate = useNavigate();
   const { cerrarSesion } = useAuth();
+  const { pathname } = useLocation();
+  const itemActivo = itemActivoDesdeRuta(pathname);
+
+  const [estiloEntrada, setEstiloEntrada] = useState<React.CSSProperties>({
+    opacity: 0,
+    transform: 'translateX(-16px)',
+  });
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      setEstiloEntrada({ opacity: 1, transform: 'translateX(0)', transition: 'opacity 0.35s ease, transform 0.35s ease' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const handleCerrarSesion = () => {
     cerrarSesion();
@@ -83,7 +102,7 @@ export default function SidebarEstudiante({ itemActivo }: SidebarEstudianteProps
   };
 
   return (
-    <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#E5E7EB] flex flex-col z-[100] overflow-y-auto animate-slide-right">
+    <aside className="fixed top-14 left-0 w-[220px] h-[calc(100vh-56px)] bg-white border-r border-[#E5E7EB] flex flex-col z-[100] overflow-y-auto overflow-x-hidden" style={estiloEntrada}>
       <div className="px-4 pt-5 pb-4 border-b border-[#F3F4F6] mb-2">
         <p className="text-sm font-bold text-[#111827] leading-tight mb-1">Gestión de Proyectos</p>
         <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.08em]">Ingeniería de Sistemas</p>

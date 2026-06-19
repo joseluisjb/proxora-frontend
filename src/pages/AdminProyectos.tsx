@@ -9,6 +9,9 @@ import BadgeEstado from '../components/ui/BadgeEstado';
 import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
 import FiltrosProyectos from '../components/ui/FiltrosProyectos';
 import Paginacion from '../components/ui/Paginacion';
+import ModalConfirmacion from '../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../context/AlertaContext';
 
 interface FiltrosValores {
   busqueda: string;
@@ -51,6 +54,8 @@ export default function AdminProyectos() {
   const [semestres, setSemestres] = useState<SemestreResponse[]>([]);
   const [materias, setMaterias] = useState<MateriaResponse[]>([]);
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([]);
+  const { modalProps, abrirModal } = useModalConfirmacion();
+  const { mostrarAlerta } = useAlertaContext();
 
   useEffect(() => {
     semestresService.listar({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {});
@@ -76,18 +81,31 @@ export default function AdminProyectos() {
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
     } catch {
-      setError('Error al cargar los datos. Intenta de nuevo.');
+      setError('Error al cargar los datos.');
+      mostrarAlerta({ mensaje: 'Error al cargar los proyectos. Intenta de nuevo.', variante: 'error' });
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [mostrarAlerta]);
 
   useEffect(() => { cargarProyectos(aplicados, pagina); }, [aplicados, pagina, cargarProyectos]);
 
-  const handleEliminar = async (proyecto: ProyectoResponse) => {
-    if (!window.confirm(`¿Eliminar el proyecto "${proyecto.titulo}"? Esta acción no se puede deshacer.`)) return;
-    try { await proyectosService.eliminar(proyecto.id); await cargarProyectos(aplicados, pagina); }
-    catch { setError('No se pudo eliminar el proyecto. Intenta de nuevo.'); }
+  const handleEliminar = (proyecto: ProyectoResponse) => {
+    abrirModal({
+      titulo: 'Eliminar proyecto',
+      mensaje: `¿Eliminar el proyecto "${proyecto.titulo}"? Esta acción no se puede deshacer.`,
+      labelConfirmar: 'Eliminar',
+      variante: 'peligro',
+      onConfirmar: async () => {
+        try {
+          await proyectosService.eliminar(proyecto.id);
+          mostrarAlerta({ mensaje: `Proyecto "${proyecto.titulo}" eliminado correctamente.`, variante: 'exito' });
+          await cargarProyectos(aplicados, pagina);
+        } catch {
+          mostrarAlerta({ mensaje: 'No se pudo eliminar el proyecto. Intenta de nuevo.', variante: 'error' });
+        }
+      },
+    });
   };
 
   const thCls = "text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B6B6B] px-4 py-3 border-b border-[#EBEBEB]";
@@ -95,6 +113,7 @@ export default function AdminProyectos() {
 
   return (
     <div>
+      <ModalConfirmacion {...modalProps} />
       <p className="text-[11px] font-bold text-[#C0392B] tracking-[0.1em] uppercase mb-1.5">ADMINISTRACIÓN DEL SISTEMA</p>
       <PageHeader
         titulo="Proyectos"
@@ -111,13 +130,6 @@ export default function AdminProyectos() {
       />
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
-        {error && (
-          <div className="bg-[#FEF2F2] border-l-[3px] border-[#EF4444] px-4 py-3 mb-4 flex items-center gap-3" role="alert">
-            <span className="flex-1">{error}</span>
-            <button onClick={() => cargarProyectos(aplicados, pagina)} className="font-semibold text-[#EF4444] bg-none border-none cursor-pointer">Reintentar</button>
-          </div>
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -132,6 +144,8 @@ export default function AdminProyectos() {
             <tbody>
               {cargando ? (
                 <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">Cargando...</p></div></td></tr>
+              ) : error ? (
+                <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarProyectos(aplicados, pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></p></div></td></tr>
               ) : proyectos.length === 0 ? (
                 <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No hay proyectos registrados</p></div></td></tr>
               ) : (

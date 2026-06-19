@@ -4,6 +4,7 @@ import { materiasService } from '../services/materias.service';
 // MOCK DATA - reemplazado por llamada real a materiasService
 // import { MATERIAS_MOCK } from '../mocks/materias';
 import FormularioAdmin, { CampoTexto, CampoToggle } from '../components/ui/FormularioAdmin';
+import { useAlertaContext } from '../context/AlertaContext';
 
 interface MateriaFormData {
   nombre: string;
@@ -14,12 +15,12 @@ interface MateriaFormData {
 export default function FormularioMateria() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { mostrarAlerta } = useAlertaContext();
   const esEdicion = !!id;
 
   const [datos, setDatos] = useState<MateriaFormData>({ nombre: '', codigo: '', activa: true });
   const [errores, setErrores] = useState<Partial<Record<keyof MateriaFormData, string>>>({});
   const [guardando, setGuardando] = useState(false);
-  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [cargandoDato, setCargandoDato] = useState(false);
 
   useEffect(() => {
@@ -30,9 +31,9 @@ export default function FormularioMateria() {
       .then((mat) =>
         setDatos({ nombre: mat.nombre, codigo: mat.codigo ?? '', activa: mat.activa })
       )
-      .catch(() => setErrorGeneral('No se pudo cargar la materia. Puede haber sido eliminada.'))
+      .catch(() => mostrarAlerta({ mensaje: 'No se pudo cargar la materia. Puede haber sido eliminada.', variante: 'error' }))
       .finally(() => setCargandoDato(false));
-  }, [id, esEdicion]);
+  }, [id, esEdicion, mostrarAlerta]);
 
   const handleCampo = <K extends keyof MateriaFormData>(campo: K, valor: MateriaFormData[K]) => {
     setDatos((prev) => ({ ...prev, [campo]: valor }));
@@ -59,7 +60,6 @@ export default function FormularioMateria() {
   const handleGuardar = async () => {
     if (!validar()) return;
     setGuardando(true);
-    setErrorGeneral(null);
     try {
       if (esEdicion && id) {
         await materiasService.actualizar(id, {
@@ -75,12 +75,11 @@ export default function FormularioMateria() {
           creadoPor: obtenerUsuarioId(),
         });
       }
+      mostrarAlerta({ mensaje: esEdicion ? 'Materia actualizada correctamente.' : 'Materia creada correctamente.', variante: 'exito' });
       navigate('/admin/materias');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
-      setErrorGeneral(
-        axiosErr.response?.data?.message ?? 'No se pudo guardar la materia. Intenta de nuevo.'
-      );
+      mostrarAlerta({ mensaje: axiosErr.response?.data?.message ?? 'No se pudo guardar la materia. Intenta de nuevo.', variante: 'error' });
     } finally {
       setGuardando(false);
     }
@@ -101,19 +100,6 @@ export default function FormularioMateria() {
       onGuardar={handleGuardar}
       guardando={guardando}
     >
-      {errorGeneral && (
-        <div
-          style={{
-            background: '#FEF2F2',
-            borderLeft: '3px solid #EF4444',
-            padding: '12px 16px',
-            marginBottom: 16,
-          }}
-          role="alert"
-        >
-          {errorGeneral}
-        </div>
-      )}
       <CampoTexto
         label="Nombre"
         valor={datos.nombre}
