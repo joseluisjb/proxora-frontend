@@ -1,7 +1,10 @@
 import api from './api'
-import type { PaginatedResponse, UsuarioResponse } from '../types/api.types'
+import type { PaginatedResponse, RegistroRequest, UsuarioResponse } from '../types/api.types'
 
 export const usuariosService = {
+  crear: (data: RegistroRequest) =>
+    api.post<UsuarioResponse>('/usuarios', data).then((r) => r.data),
+
   listar: (params: { page?: number; size?: number; sort?: string }) =>
     api.get<PaginatedResponse<UsuarioResponse>>('/usuarios', { params }).then((r) => r.data),
 

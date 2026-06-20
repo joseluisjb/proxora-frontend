@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { usuariosService } from '../services/usuarios.service';
 
 interface RegistroFormState {
   nombre: string
@@ -47,6 +49,33 @@ export default function Registro() {
   const limpiarError = (campo: keyof RegistroFormState['errores']) =>
     setEstado((prev) => ({ ...prev, errores: { ...prev.errores, [campo]: undefined } }));
 
+  const handleContrasenaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    setEstado((prev) => ({
+      ...prev,
+      contrasena: valor,
+      errores: {
+        ...prev.errores,
+        contrasena: valor && valor.length < 8 ? 'La contraseña debe tener al menos 8 caracteres' : undefined,
+        confirmarContrasena: prev.confirmarContrasena
+          ? (prev.confirmarContrasena !== valor ? 'Las contraseñas no coinciden' : undefined)
+          : prev.errores.confirmarContrasena,
+      },
+    }));
+  };
+
+  const handleConfirmarContrasenaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    setEstado((prev) => ({
+      ...prev,
+      confirmarContrasena: valor,
+      errores: {
+        ...prev.errores,
+        confirmarContrasena: valor && valor !== prev.contrasena ? 'Las contraseñas no coinciden' : undefined,
+      },
+    }));
+  };
+
   const validar = (): boolean => {
     const errores: RegistroFormState['errores'] = {};
     if (!estado.nombre.trim()) errores.nombre = 'El nombre es obligatorio';
@@ -63,14 +92,33 @@ export default function Registro() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
     set({ registrando: true, errores: {} });
-    setTimeout(() => {
+
+    try {
+      await usuariosService.crear({
+        nombre: estado.nombre.trim(),
+        apellido: estado.apellido.trim(),
+        correo: estado.correo.trim(),
+        contrasena: estado.contrasena,
+      });
       set({ registrando: false, exito: true });
       setTimeout(() => navigate('/login'), 2500);
-    }, 1200);
+    } catch (err) {
+      let mensaje = 'No se pudo conectar con el servidor. Intenta de nuevo.';
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 409) {
+          mensaje = 'Ya existe una cuenta registrada con ese correo';
+        } else if (err.response.status === 400) {
+          mensaje = 'Por favor verifica los datos ingresados';
+        } else {
+          mensaje = 'Ocurrió un error al crear la cuenta. Intenta de nuevo.';
+        }
+      }
+      set({ registrando: false, errores: { general: mensaje } });
+    }
   };
 
   const inputCls = (hasError: boolean) =>
@@ -167,7 +215,7 @@ export default function Registro() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </span>
-                  <input id="contrasena" type={estado.mostrarContrasena ? 'text' : 'password'} autoComplete="new-password" className={`${inputCls(!!estado.errores.contrasena)} pl-10 pr-10`} placeholder="••••••••" value={estado.contrasena} onChange={(e) => { set({ contrasena: e.target.value }); limpiarError('contrasena'); }} aria-invalid={!!estado.errores.contrasena} />
+                  <input id="contrasena" type={estado.mostrarContrasena ? 'text' : 'password'} autoComplete="new-password" className={`${inputCls(!!estado.errores.contrasena)} pl-10 pr-10`} placeholder="••••••••" value={estado.contrasena} onChange={handleContrasenaChange} aria-invalid={!!estado.errores.contrasena} />
                   <button type="button" className={iconoDerBtn} onClick={() => set({ mostrarContrasena: !estado.mostrarContrasena })} aria-label={estado.mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
                     {estado.mostrarContrasena ? <EyeClosed /> : <EyeOpen />}
                   </button>
@@ -183,7 +231,7 @@ export default function Registro() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </span>
-                  <input id="confirmarContrasena" type={estado.mostrarConfirmar ? 'text' : 'password'} autoComplete="new-password" className={`${inputCls(!!estado.errores.confirmarContrasena)} pl-10 pr-10`} placeholder="••••••••" value={estado.confirmarContrasena} onChange={(e) => { set({ confirmarContrasena: e.target.value }); limpiarError('confirmarContrasena'); }} aria-invalid={!!estado.errores.confirmarContrasena} />
+                  <input id="confirmarContrasena" type={estado.mostrarConfirmar ? 'text' : 'password'} autoComplete="new-password" className={`${inputCls(!!estado.errores.confirmarContrasena)} pl-10 pr-10`} placeholder="••••••••" value={estado.confirmarContrasena} onChange={handleConfirmarContrasenaChange} aria-invalid={!!estado.errores.confirmarContrasena} />
                   <button type="button" className={iconoDerBtn} onClick={() => set({ mostrarConfirmar: !estado.mostrarConfirmar })} aria-label={estado.mostrarConfirmar ? 'Ocultar confirmación' : 'Mostrar confirmación'}>
                     {estado.mostrarConfirmar ? <EyeClosed /> : <EyeOpen />}
                   </button>
@@ -196,7 +244,17 @@ export default function Registro() {
                 className="w-full py-3.5 bg-[#B91C1C] text-white border-none rounded-lg font-sans text-base font-bold cursor-pointer transition-all hover:bg-[#991B1B] hover:-translate-y-px active:translate-y-0 flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-80 disabled:translate-y-0"
                 disabled={estado.registrando}
               >
-                {estado.registrando ? 'Creando cuenta...' : <><span>Crear cuenta</span><span aria-hidden="true">→</span></>}
+                {estado.registrando ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                    <span>Creando cuenta...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Crear cuenta</span>
+                    <span aria-hidden="true">→</span>
+                  </>
+                )}
               </button>
 
               <p className="text-center text-sm text-[#6B7280] m-0 font-sans">

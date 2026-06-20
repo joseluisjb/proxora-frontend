@@ -35,7 +35,7 @@ function formatearTamano(bytes: number | null): string {
 function validarArchivo(file: File): string | null {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
   if (!['pdf', 'doc', 'docx'].includes(ext)) return 'Solo se permiten archivos PDF, DOC y DOCX';
-  if (file.size > 25 * 1024 * 1024) return 'El archivo no puede superar 25 MB';
+  if (file.size > 100 * 1024 * 1024) return 'El archivo no puede superar 100 MB';
   return null;
 }
 
