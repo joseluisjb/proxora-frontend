@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   ProyectoResponse,
@@ -9,55 +9,39 @@ import type {
   NivelVisibilidadResponse,
 } from '../../types/api.types';
 import { dashboardService } from '../../services/estudiante/dashboard.service';
+import { extraerMensajeError } from '../../utils/errores';
 import { proyectosService } from '../../services/proyectos.service';
 import { GrillaProyectos } from '../../components/proyecto/GrillaProyectos';
 import FiltrosProyectos from '../../components/ui/FiltrosProyectos';
 import Paginacion from '../../components/ui/Paginacion';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { filtrarProyectos, type FiltrosProyectosValores } from '../../utils/filtrarProyectos';
 
-interface FiltrosValores {
-  busqueda: string
-  semestre: string
-  materia: string
-  lineaInvestigacion: string
-  estado: string
-  visibilidad: string
-}
-
-type ModoConsulta = 'todos' | 'busqueda' | 'semestre' | 'materia' | 'estado'
+type FiltrosValores = FiltrosProyectosValores
 
 const PAGINA_SIZE = 4
-
-function resolverModo(f: FiltrosValores): ModoConsulta {
-  if (f.busqueda.trim()) return 'busqueda'
-  if (f.semestre) return 'semestre'
-  if (f.materia) return 'materia'
-  if (f.estado) return 'estado'
-  return 'todos'
-}
+const LOTE_SIZE = 1000
 
 export default function DashboardEstudiante() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { mostrarAlerta } = useAlertaContext();
 
-  const [proyectos, setProyectos] = useState<ProyectoResponse[]>([])
+  const [todosProyectos, setTodosProyectos] = useState<ProyectoResponse[]>([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [paginaActual, setPaginaActual] = useState(0)
-  const [totalPaginas, setTotalPaginas] = useState(1)
-  const [totalElementos, setTotalElementos] = useState(0)
 
   const [filtros, setFiltros] = useState<FiltrosValores>({
     busqueda: '', semestre: '', materia: '', lineaInvestigacion: '', estado: '', visibilidad: '',
   })
   const [aplicados, setAplicados] = useState<FiltrosValores>(filtros)
+  const [aplicandoFiltro, setAplicandoFiltro] = useState(false)
 
   const [semestres, setSemestres] = useState<SemestreResponse[]>([])
   const [materias, setMaterias] = useState<MateriaResponse[]>([])
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([])
   const [estados, setEstados] = useState<EstadoProyectoResponse[]>([])
   const [visibilidades, setVisibilidades] = useState<NivelVisibilidadResponse[]>([])
-  const estadosMapRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (searchParams.get('registrado') === 'true') {
@@ -70,35 +54,16 @@ export default function DashboardEstudiante() {
     dashboardService.listarSemestres({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {})
     dashboardService.listarMaterias({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {})
     dashboardService.listarLineas({ size: 100 }).then((r) => setLineas(r.content)).catch(() => {})
-    proyectosService.listarEstados()
-      .then((lista) => {
-        estadosMapRef.current = Object.fromEntries(lista.map((e) => [e.nombre, e.id]))
-        setEstados(lista)
-      })
-      .catch(() => {})
+    proyectosService.listarEstados().then(setEstados).catch(() => {})
     proyectosService.listarNivelesVisibilidad().then(setVisibilidades).catch(() => {})
   }, [])
 
-  const cargarProyectos = useCallback(async (f: FiltrosValores, pagina: number) => {
+  const cargarProyectos = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
-      const params = { page: pagina, size: PAGINA_SIZE }
-      const modo = resolverModo(f)
-      let resultado
-
-      if (modo === 'busqueda') resultado = await dashboardService.buscarProyectos(f.busqueda.trim(), params)
-      else if (modo === 'semestre') resultado = await dashboardService.listarPorSemestre(f.semestre, params)
-      else if (modo === 'materia') resultado = await dashboardService.listarPorMateria(f.materia, params)
-      else if (modo === 'estado') resultado = await dashboardService.listarPorEstado(estadosMapRef.current[f.estado] ?? 1, params)
-      else resultado = await dashboardService.listarProyectos({ ...params, sort: 'creadoEn,desc' })
-
-      let contenido = resultado.content
-      if (f.visibilidad) contenido = contenido.filter((p) => p.visibilidad === f.visibilidad)
-
-      setProyectos(contenido)
-      setTotalPaginas(resultado.totalPages || 1)
-      setTotalElementos(resultado.totalElements)
+      const resultado = await dashboardService.listarProyectos({ size: LOTE_SIZE, sort: 'creadoEn,desc' })
+      setTodosProyectos(resultado.content)
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } }
       if (axiosErr.response?.status === 401) {
@@ -106,26 +71,41 @@ export default function DashboardEstudiante() {
         mostrarAlerta({ mensaje: 'Sesión expirada. Por favor inicia sesión nuevamente.', variante: 'error' })
       } else {
         setError('Error al cargar los proyectos. Intenta de nuevo.')
-        mostrarAlerta({ mensaje: 'Error al cargar los proyectos. Intenta de nuevo.', variante: 'error' })
+        mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar los proyectos. Intenta de nuevo.'), variante: 'error' })
       }
     } finally {
       setCargando(false)
     }
   }, [mostrarAlerta])
 
-  useEffect(() => { cargarProyectos(aplicados, paginaActual) }, [aplicados, paginaActual, cargarProyectos])
+  useEffect(() => { cargarProyectos() }, [cargarProyectos])
+
+  const proyectosFiltrados = useMemo(() => filtrarProyectos(todosProyectos, aplicados), [todosProyectos, aplicados])
+  const totalElementos = proyectosFiltrados.length
+  const totalPaginas = Math.max(1, Math.ceil(totalElementos / PAGINA_SIZE))
+  const paginaSegura = Math.min(paginaActual, totalPaginas - 1)
+  const proyectos = useMemo(
+    () => proyectosFiltrados.slice(paginaSegura * PAGINA_SIZE, paginaSegura * PAGINA_SIZE + PAGINA_SIZE),
+    [proyectosFiltrados, paginaSegura],
+  )
 
   return (
     <>
       <FiltrosProyectos
         valores={filtros}
         onChange={(campo, valor) => setFiltros((prev) => ({ ...prev, [campo]: valor }))}
-        onFiltrar={() => { setAplicados(filtros); setPaginaActual(0) }}
+        onFiltrar={() => {
+          setAplicandoFiltro(true)
+          setAplicados(filtros)
+          setPaginaActual(0)
+          setTimeout(() => setAplicandoFiltro(false), 350)
+        }}
         semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
         materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
         lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
         estados={estados}
         visibilidades={visibilidades}
+        aplicandoFiltro={aplicandoFiltro}
       />
 
       <div className="mt-6 animate-fade-in">
@@ -141,7 +121,7 @@ export default function DashboardEstudiante() {
           cargando={cargando}
           error={error}
           vistaActual="grilla"
-          onReintentar={() => cargarProyectos(aplicados, paginaActual)}
+          onReintentar={cargarProyectos}
           mostrarVisibilidad
           mostrarDirector
           mostrarIntegrantes
@@ -151,8 +131,8 @@ export default function DashboardEstudiante() {
         {!cargando && !error && totalElementos > 0 && (
           <div className="mt-6 flex justify-center">
             <Paginacion
-              paginaActual={paginaActual + 1}
-              totalPaginas={Math.max(totalPaginas, 1)}
+              paginaActual={paginaSegura + 1}
+              totalPaginas={totalPaginas}
               totalRegistros={totalElementos}
               registrosPorPagina={PAGINA_SIZE}
               labelEntidad="proyectos"

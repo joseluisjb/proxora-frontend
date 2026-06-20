@@ -6,15 +6,12 @@ import { misProyectosService } from '../../services/estudiante/misProyectos.serv
 import { proyectosService } from '../../services/proyectos.service';
 import { useAuth } from '../../context/AuthContext';
 import AvatarIniciales from '../../components/ui/AvatarIniciales';
+import Desplegable from '../../components/ui/Desplegable';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
-
-const ETIQUETA_VISIBILIDAD: Record<string, string> = {
-  solo_metadatos:   'Solo metadatos',
-  lectura:          'Solo lectura',
-  lectura_descarga: 'Lectura y descarga',
-};
+import { extraerMensajeError } from '../../utils/errores';
+import { ETIQUETA_VISIBILIDAD_CATALOGO as ETIQUETA_VISIBILIDAD } from '../../constants/visibilidad';
 
 const ETIQUETA_ESTADO: Record<string, string> = {
   en_desarrollo: 'En Desarrollo',
@@ -38,7 +35,7 @@ export default function EditarProyecto() {
   const [idEstado, setIdEstado] = useState(0);
   const [estadosProyecto, setEstadosProyecto] = useState<EstadoProyectoResponse[]>([]);
   const [lineasIds, setLineasIds] = useState<string[]>([]);
-  const [idVisibilidad, setIdVisibilidad] = useState(2);
+  const [idVisibilidad, setIdVisibilidad] = useState(0);
   const [nivelesVisibilidad, setNivelesVisibilidad] = useState<NivelVisibilidadResponse[]>([]);
 
   const [integrantesSeleccionados, setIntegrantesSeleccionados] = useState<UsuarioResponse[]>([]);
@@ -97,7 +94,7 @@ export default function EditarProyecto() {
         setResumen(proyecto.resumen);
         const estadoEncontrado = estados.find((e) => e.nombre === proyecto.estado);
         if (estadoEncontrado) setIdEstado(estadoEncontrado.id);
-        setIdVisibilidad(niveles.find((n) => n.nombre === proyecto.visibilidad)?.id ?? 2);
+        setIdVisibilidad(niveles.find((n) => n.nombre === proyecto.visibilidad)?.id ?? niveles[0]?.id ?? 0);
         setLineasIds(proyecto.lineas.map((l) => l.id));
 
         setIntegrantesSeleccionados(
@@ -125,9 +122,9 @@ export default function EditarProyecto() {
           if (m) setIdMateria(m.id);
         }
       })
-      .catch(() => {
+      .catch((err) => {
         setErrorCarga('No se pudo cargar el proyecto para editar.');
-        mostrarAlerta({ mensaje: 'No se pudo cargar el proyecto para editar.', variante: 'error' });
+        mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo cargar el proyecto para editar.'), variante: 'error' });
       })
       .finally(() => setCargandoProyecto(false));
   }, [id]);
@@ -189,9 +186,9 @@ export default function EditarProyecto() {
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
       if (axiosErr.response?.status === 400 || axiosErr.response?.status === 404) {
-        mostrarAlerta({ mensaje: 'Error al actualizar el proyecto. Verifica los datos e intenta de nuevo.', variante: 'error' });
+        mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al actualizar el proyecto. Verifica los datos e intenta de nuevo.'), variante: 'error' });
       } else {
-        mostrarAlerta({ mensaje: 'No se pudo conectar con el servidor. Intenta de nuevo.', variante: 'error' });
+        mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo conectar con el servidor. Intenta de nuevo.'), variante: 'error' });
       }
     } finally {
       setGuardando(false);
@@ -221,7 +218,6 @@ export default function EditarProyecto() {
   const lineasSeleccionadas = todasLineas.filter((l) => lineasIds.includes(l.id));
 
   const inputCls = (err?: string) => `w-full px-3.5 py-2.5 border-[1.5px] rounded-lg font-sans text-[13px] text-[#111827] bg-white transition-colors outline-none placeholder:text-[#9CA3AF] focus:border-[#B91C1C] ${err ? 'border-[#EF4444]' : 'border-[#E5E7EB]'}`;
-  const selectCls = `w-full px-3.5 py-2.5 border-[1.5px] border-[#E5E7EB] rounded-lg font-sans text-[13px] text-[#111827] bg-white appearance-none cursor-pointer focus:outline-none focus:border-[#B91C1C] transition-colors`;
   const labelCls = "block text-[11px] font-bold text-[#6B7280] uppercase tracking-[0.07em] mb-1.5";
   const cardCls = "bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-7";
   const cardHeaderCls = "flex items-center gap-2.5 mb-5";
@@ -295,9 +291,9 @@ export default function EditarProyecto() {
         </p>
       </div>
 
-      <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1 animate-slide-up">
+      <div className="grid grid-cols-[minmax(0,65fr)_minmax(0,35fr)] gap-6 items-start max-md:grid-cols-1 animate-slide-up">
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 min-w-0">
           {/* Detalles */}
           <div className={cardCls}>
             <div className={cardHeaderCls}>
@@ -311,19 +307,24 @@ export default function EditarProyecto() {
               <p className={ayudaCls}>El título debe ser conciso y técnicamente descriptivo.</p>
             </div>
             <div className={campoMb}>
-              <label htmlFor="ep-semestre" className={labelCls}>SEMESTRE ACADÉMICO</label>
-              <select id="ep-semestre" className={selectCls} value={idSemestre} onChange={(e) => setIdSemestre(e.target.value)}>
-                <option value="">Selecciona un semestre</option>
-                {semestresActivos.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-              </select>
+              <label className={labelCls}>SEMESTRE ACADÉMICO</label>
+              <Desplegable
+                className="w-full"
+                valor={idSemestre}
+                onChange={setIdSemestre}
+                opciones={[{ valor: '', etiqueta: 'Selecciona un semestre' }, ...semestresActivos.map((s) => ({ valor: s.id, etiqueta: s.nombre }))]}
+                ariaLabel="Semestre académico"
+              />
             </div>
             <div className={campoMb}>
-              <label htmlFor="ep-estado" className={labelCls}>ESTADO DEL PROYECTO</label>
-              <select id="ep-estado" className={selectCls} value={idEstado} onChange={(e) => setIdEstado(Number(e.target.value))}>
-                {estadosProyecto.map((e) => (
-                  <option key={e.id} value={e.id}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
-                ))}
-              </select>
+              <label className={labelCls}>ESTADO DEL PROYECTO</label>
+              <Desplegable
+                className="w-full"
+                valor={String(idEstado)}
+                onChange={(v) => setIdEstado(Number(v))}
+                opciones={estadosProyecto.map((e) => ({ valor: String(e.id), etiqueta: ETIQUETA_ESTADO[e.nombre] ?? e.nombre }))}
+                ariaLabel="Estado del proyecto"
+              />
             </div>
             <div className={campoMb}>
               <label htmlFor="ep-resumen" className={labelCls}>RESUMEN</label>
@@ -480,7 +481,7 @@ export default function EditarProyecto() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 min-w-0">
           {/* Categorización */}
           <div className={cardCls}>
             <div className={cardHeaderCls}>
@@ -488,11 +489,14 @@ export default function EditarProyecto() {
               <span className={cardTituloCls}>Categorización</span>
             </div>
             <div className={campoMb}>
-              <label htmlFor="ep-materia" className={labelCls}>MATERIA</label>
-              <select id="ep-materia" className={selectCls} value={idMateria} onChange={(e) => setIdMateria(e.target.value)}>
-                <option value="">Selecciona una materia</option>
-                {materiasActivas.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
+              <label className={labelCls}>MATERIA</label>
+              <Desplegable
+                className="w-full"
+                valor={idMateria}
+                onChange={setIdMateria}
+                opciones={[{ valor: '', etiqueta: 'Selecciona una materia' }, ...materiasActivas.map((m) => ({ valor: m.id, etiqueta: m.nombre }))]}
+                ariaLabel="Materia"
+              />
             </div>
             <div className={campoMb}>
               <p className={labelCls}>LÍNEAS DE INVESTIGACIÓN</p>
@@ -529,12 +533,14 @@ export default function EditarProyecto() {
               <span className={cardTituloCls}>Visibilidad</span>
             </div>
             <div className={campoMb}>
-              <label htmlFor="ep-visibilidad" className={labelCls}>NIVEL DE VISIBILIDAD</label>
-              <select id="ep-visibilidad" className={selectCls} value={idVisibilidad} onChange={(e) => setIdVisibilidad(Number(e.target.value))}>
-                {nivelesVisibilidad.map((v) => (
-                  <option key={v.id} value={v.id}>{ETIQUETA_VISIBILIDAD[v.nombre] ?? v.nombre}</option>
-                ))}
-              </select>
+              <label className={labelCls}>NIVEL DE VISIBILIDAD</label>
+              <Desplegable
+                className="w-full"
+                valor={String(idVisibilidad)}
+                onChange={(v) => setIdVisibilidad(Number(v))}
+                opciones={nivelesVisibilidad.map((v) => ({ valor: String(v.id), etiqueta: ETIQUETA_VISIBILIDAD[v.nombre] ?? v.nombre }))}
+                ariaLabel="Nivel de visibilidad"
+              />
               <p className={ayudaCls}>{nivelesVisibilidad.find((v) => v.id === idVisibilidad)?.descripcion ?? ''}</p>
             </div>
             <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-lg p-3 mt-3">

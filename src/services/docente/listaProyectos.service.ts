@@ -10,37 +10,9 @@ import type {
 type ParamsPaginacion = { page?: number; size?: number; sort?: string }
 
 export const listaProyectosDocenteService = {
-  // GET /proyectos/director/{id} cuando el endpoint esté disponible en el backend
-  listarMisProyectos: (idDocente: string, params: ParamsPaginacion) =>
-    api
-      .get<PaginatedResponse<ProyectoResponse>>(`/proyectos/director/${idDocente}`, { params })
-      .then((r) => r.data),
-
   listarProyectos: (params: ParamsPaginacion) =>
     api
       .get<PaginatedResponse<ProyectoResponse>>('/proyectos', { params })
-      .then((r) => r.data),
-
-  buscarProyectos: (titulo: string, params: ParamsPaginacion) =>
-    api
-      .get<PaginatedResponse<ProyectoResponse>>('/proyectos/buscar', {
-        params: { titulo, ...params },
-      })
-      .then((r) => r.data),
-
-  listarPorSemestre: (idSemestre: string, params: ParamsPaginacion) =>
-    api
-      .get<PaginatedResponse<ProyectoResponse>>(`/proyectos/semestre/${idSemestre}`, { params })
-      .then((r) => r.data),
-
-  listarPorMateria: (idMateria: string, params: ParamsPaginacion) =>
-    api
-      .get<PaginatedResponse<ProyectoResponse>>(`/proyectos/materia/${idMateria}`, { params })
-      .then((r) => r.data),
-
-  listarPorEstado: (idEstado: number, params: ParamsPaginacion) =>
-    api
-      .get<PaginatedResponse<ProyectoResponse>>(`/proyectos/estado/${idEstado}`, { params })
       .then((r) => r.data),
 
   listarSemestres: (params: { size?: number }) =>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { evaluacionesService } from '../../services/estudiante/evaluaciones.service';
 import type { ProyectoResponse, EvaluacionResponse } from '../../types/api.types';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 function Iniciales({ nombre, apellido }: { nombre: string; apellido: string }) {
   return (
@@ -94,9 +95,9 @@ export default function EvaluacionDetalle() {
       } catch {
         setEvaluaciones([]);
       }
-    } catch {
+    } catch (err) {
       setError('No se pudo cargar la información del proyecto.');
-      mostrarAlerta({ mensaje: 'No se pudo cargar la información del proyecto.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo cargar la información del proyecto.'), variante: 'error' });
     } finally {
       setCargando(false);
     }

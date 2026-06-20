@@ -1,4 +1,4 @@
-export type NivelVisibilidad = 'solo_metadatos' | 'lectura' | 'lectura_descarga'
+export type NivelVisibilidad = 'solo_metadatos' | 'lectura_descarga'
 
 export interface NivelVisibilidadResponse {
   id: number
@@ -69,7 +69,7 @@ export interface ProyectoResponse {
   semestre: string | null
   materia: string | null
   estado: 'en_desarrollo' | 'finalizado' | 'bajo_revision' | 'retrasado'
-  visibilidad: 'solo_metadatos' | 'lectura' | 'lectura_descarga'
+  visibilidad: 'solo_metadatos' | 'lectura_descarga'
   registradoPor: UsuarioResumen
   integrantes: UsuarioResumen[]
   directores: UsuarioResumen[]
@@ -183,7 +183,7 @@ export interface ProyectoDetalleResponse {
   semestre: string | null
   materia: string | null
   estado: 'en_desarrollo' | 'finalizado' | 'bajo_revision' | 'retrasado'
-  visibilidad: 'solo_metadatos' | 'lectura' | 'lectura_descarga'
+  visibilidad: 'solo_metadatos' | 'lectura_descarga'
   directores: UsuarioResumen[]
   integrantes: UsuarioResumen[]
   lineas: LineaInvestigacionResponse[]

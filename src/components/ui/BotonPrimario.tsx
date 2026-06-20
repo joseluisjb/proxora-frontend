@@ -3,6 +3,7 @@ interface BotonPrimarioProps {
   onClick?: () => void;
   icono?: 'mas' | 'filtrar' | 'exportar';
   disabled?: boolean;
+  cargando?: boolean;
   type?: 'button' | 'submit';
 }
 
@@ -24,16 +25,20 @@ const ICONOS = {
   ),
 };
 
-export default function BotonPrimario({ label, onClick, icono, disabled = false, type = 'button' }: BotonPrimarioProps) {
+export default function BotonPrimario({ label, onClick, icono, disabled = false, cargando = false, type = 'button' }: BotonPrimarioProps) {
   return (
     <button
       type={type}
       className="inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-lg font-sans text-[13px] font-semibold cursor-pointer border-none bg-[#C0392B] text-white transition-all hover:-translate-y-px hover:bg-[#96281B] hover:shadow-md tracking-[0.02em] disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || cargando}
       aria-label={label}
     >
-      {icono && ICONOS[icono]}
+      {cargando ? (
+        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+      ) : (
+        icono && ICONOS[icono]
+      )}
       {label}
     </button>
   );

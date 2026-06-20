@@ -3,6 +3,7 @@ import BarraBusqueda from './BarraBusqueda';
 import BotonPrimario from './BotonPrimario';
 import Desplegable from './Desplegable';
 import type { EstadoProyectoResponse, NivelVisibilidadResponse } from '../../types/api.types';
+import { ETIQUETA_VISIBILIDAD_CATALOGO as ETIQUETA_VISIBILIDAD } from '../../constants/visibilidad';
 
 interface OpcionSelect {
   id: string;
@@ -27,6 +28,7 @@ interface FiltrosProyectosProps {
   lineas: OpcionSelect[];
   estados: EstadoProyectoResponse[];
   visibilidades?: NivelVisibilidadResponse[];
+  aplicandoFiltro?: boolean;
 }
 
 const ETIQUETA_ESTADO: Record<string, string> = {
@@ -34,12 +36,6 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   finalizado:    'Finalizado',
   bajo_revision: 'Bajo revisión',
   retrasado:     'Retrasado',
-};
-
-const ETIQUETA_VISIBILIDAD: Record<string, string> = {
-  solo_metadatos:   'Solo metadatos',
-  lectura:          'Lectura',
-  lectura_descarga: 'Lectura y descarga',
 };
 
 const labelCls = "text-[11px] font-semibold text-[#6B6B6B] tracking-[0.05em] uppercase";
@@ -53,6 +49,7 @@ export default function FiltrosProyectos({
   lineas,
   estados,
   visibilidades = [],
+  aplicandoFiltro = false,
 }: FiltrosProyectosProps) {
   const [expandido, setExpandido] = useState(false);
   const [permitirDesborde, setPermitirDesborde] = useState(false);
@@ -104,7 +101,7 @@ export default function FiltrosProyectos({
                 <Desplegable
                   valor={valores.semestre}
                   onChange={(v) => onChange('semestre', v)}
-                  opciones={[{ valor: '', etiqueta: 'Todos los semestres' }, ...semestres.map((s) => ({ valor: s.id, etiqueta: s.nombre }))]}
+                  opciones={[{ valor: '', etiqueta: 'Todos los semestres' }, ...semestres.map((s) => ({ valor: s.nombre, etiqueta: s.nombre }))]}
                   ariaLabel="Filtrar por semestre"
                 />
               </div>
@@ -114,7 +111,7 @@ export default function FiltrosProyectos({
                 <Desplegable
                   valor={valores.materia}
                   onChange={(v) => onChange('materia', v)}
-                  opciones={[{ valor: '', etiqueta: 'Todas las materias' }, ...materias.map((m) => ({ valor: m.id, etiqueta: m.nombre }))]}
+                  opciones={[{ valor: '', etiqueta: 'Todas las materias' }, ...materias.map((m) => ({ valor: m.nombre, etiqueta: m.nombre }))]}
                   ariaLabel="Filtrar por materia"
                 />
               </div>
@@ -158,7 +155,7 @@ export default function FiltrosProyectos({
           </div>
         </div>
 
-        <BotonPrimario label="Filtrar" icono="filtrar" onClick={onFiltrar} />
+        <BotonPrimario label="Filtrar" icono="filtrar" onClick={onFiltrar} cargando={aplicandoFiltro} />
       </div>
     </div>
   );
