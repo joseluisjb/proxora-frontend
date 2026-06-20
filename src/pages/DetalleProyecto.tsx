@@ -51,7 +51,7 @@ function IconoArchivo({ mimeType }: { mimeType: string | null }) {
 
 function SkeletonDetalle() {
   return (
-    <div className="grid grid-cols-[65fr_35fr] gap-6 items-start">
+    <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1">
       <div className="flex flex-col gap-4">
         <div className="bg-[#E5E7EB] rounded-xl h-[320px] animate-pulse" />
         <div className="bg-[#E5E7EB] rounded-xl h-[200px] animate-pulse" />

@@ -5,6 +5,7 @@ import { evaluacionesService } from '../../services/estudiante/evaluaciones.serv
 import { proyectosService } from '../../services/proyectos.service';
 import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.types';
 import Paginacion from '../../components/ui/Paginacion';
+import Desplegable from '../../components/ui/Desplegable';
 import { useAlertaContext } from '../../context/AlertaContext';
 
 const PAGINA_SIZE = 8;
@@ -90,8 +91,8 @@ export default function Evaluaciones() {
       </div>
 
       {!cargando && !error && proyectos.length > 0 && (
-        <div className="flex gap-3 mb-5">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap gap-3 mb-5">
+          <div className="relative flex-1 min-w-[200px]">
             <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -103,16 +104,16 @@ export default function Evaluaciones() {
               className="w-full pl-9 pr-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#B91C1C] transition-colors bg-white"
             />
           </div>
-          <select
-            value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            className="px-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] focus:outline-none focus:border-[#B91C1C] transition-colors bg-white cursor-pointer shrink-0"
-          >
-            <option value="">Todos los estados</option>
-            {estadosDisponibles.map((e) => (
-              <option key={e.id} value={e.nombre}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
-            ))}
-          </select>
+          <Desplegable
+            valor={filtroEstado}
+            onChange={setFiltroEstado}
+            opciones={[
+              { valor: '', etiqueta: 'Todos los estados' },
+              ...estadosDisponibles.map((e) => ({ valor: e.nombre, etiqueta: ETIQUETA_ESTADO[e.nombre] ?? e.nombre })),
+            ]}
+            ariaLabel="Filtrar por estado"
+            className="shrink-0"
+          />
         </div>
       )}
 

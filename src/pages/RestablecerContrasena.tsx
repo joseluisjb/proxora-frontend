@@ -21,19 +21,43 @@ export default function RestablecerContrasena() {
   const inputCls = (hasError: boolean) =>
     `w-full py-3 px-4 pr-11 bg-[#F9FAFB] border rounded-lg font-sans text-sm text-[#111827] outline-none transition-colors placeholder:text-[#D1D5DB] ${hasError ? 'border-[#EF4444] focus:border-[#EF4444]' : 'border-[#E5E7EB] focus:border-[#B91C1C]'}`;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validar = (nueva: string, confirmarVal: string) => {
     const errs: typeof errores = {};
-    if (!nuevaContrasena) {
+    if (!nueva) {
       errs.nuevaContrasena = 'La nueva contraseña es obligatoria';
-    } else if (nuevaContrasena.length < 8) {
+    } else if (nueva.length < 8) {
       errs.nuevaContrasena = 'La contraseña debe tener al menos 8 caracteres';
     }
-    if (!confirmar) {
+    if (!confirmarVal) {
       errs.confirmar = 'Debes confirmar la contraseña';
-    } else if (nuevaContrasena && confirmar !== nuevaContrasena) {
+    } else if (confirmarVal !== nueva) {
       errs.confirmar = 'Las contraseñas no coinciden';
     }
+    return errs;
+  };
+
+  const handleNuevaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    setNuevaContrasena(valor);
+    setErrores((p) => ({
+      ...p,
+      nuevaContrasena: valor && valor.length < 8 ? 'La contraseña debe tener al menos 8 caracteres' : undefined,
+      confirmar: confirmar ? (confirmar !== valor ? 'Las contraseñas no coinciden' : undefined) : p.confirmar,
+    }));
+  };
+
+  const handleConfirmarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    setConfirmar(valor);
+    setErrores((p) => ({
+      ...p,
+      confirmar: valor && valor !== nuevaContrasena ? 'Las contraseñas no coinciden' : undefined,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs = validar(nuevaContrasena, confirmar);
     if (Object.keys(errs).length > 0) {
       setErrores(errs);
       return;
@@ -137,7 +161,7 @@ export default function RestablecerContrasena() {
                     className={inputCls(!!errores.nuevaContrasena)}
                     placeholder="Mínimo 8 caracteres"
                     value={nuevaContrasena}
-                    onChange={(e) => { setNuevaContrasena(e.target.value); setErrores((p) => ({ ...p, nuevaContrasena: undefined })); }}
+                    onChange={handleNuevaChange}
                     aria-invalid={!!errores.nuevaContrasena}
                   />
                   <button
@@ -175,7 +199,7 @@ export default function RestablecerContrasena() {
                     className={inputCls(!!errores.confirmar)}
                     placeholder="Repite la contraseña"
                     value={confirmar}
-                    onChange={(e) => { setConfirmar(e.target.value); setErrores((p) => ({ ...p, confirmar: undefined })); }}
+                    onChange={handleConfirmarChange}
                     aria-invalid={!!errores.confirmar}
                   />
                   <button

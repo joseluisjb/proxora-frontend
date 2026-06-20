@@ -10,21 +10,21 @@ function ScrollToTop() {
   }, [pathname]);
   return null;
 }
-import AdminLayout from './components/AdminLayout';
+import LayoutAdmin from './components/layout/LayoutAdmin';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
 import RecuperarContrasena from './pages/RecuperarContrasena';
 import RestablecerContrasena from './pages/RestablecerContrasena';
 import LandingPage from './pages/LandingPage';
 import DetalleProyecto from './pages/DetalleProyecto';
-import AdminUsuarios from './pages/AdminUsuarios';
-import AdminProyectos from './pages/AdminProyectos';
-import AdminLineasInvestigacion from './pages/AdminLineasInvestigacion';
-import AdminMaterias from './pages/AdminMaterias';
-import AdminSemestres from './pages/AdminSemestres';
-import FormularioLineaInvestigacion from './pages/FormularioLineaInvestigacion';
-import FormularioMateria from './pages/FormularioMateria';
-import FormularioSemestre from './pages/FormularioSemestre';
+import AdminUsuarios from './pages/administrador/AdminUsuarios';
+import AdminProyectos from './pages/administrador/AdminProyectos';
+import AdminLineasInvestigacion from './pages/administrador/AdminLineasInvestigacion';
+import AdminMaterias from './pages/administrador/AdminMaterias';
+import AdminSemestres from './pages/administrador/AdminSemestres';
+import FormularioLineaInvestigacion from './pages/administrador/FormularioLineaInvestigacion';
+import FormularioMateria from './pages/administrador/FormularioMateria';
+import FormularioSemestre from './pages/administrador/FormularioSemestre';
 import LayoutEstudiante from './components/layout/LayoutEstudiante';
 import LayoutDocente from './components/layout/LayoutDocente';
 import DashboardEstudiante from './pages/estudiante/DashboardEstudiante';
@@ -128,7 +128,7 @@ function Rutas() {
       <Route path="/proyectos/:id" element={<DetalleProyecto />} />
 
       {/* Panel de administración */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route path="/admin" element={<LayoutAdmin />}>
         <Route index element={<Navigate to="usuarios" replace />} />
         <Route path="usuarios" element={<AdminUsuarios />} />
         <Route path="proyectos" element={<AdminProyectos />} />

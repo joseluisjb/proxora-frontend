@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { semestresService } from '../services/semestres.service';
+import { semestresService } from '../../services/semestres.service';
 // MOCK DATA - reemplazado por llamada real a semestresService
-// import { SEMESTRES_MOCK } from '../mocks/semestres';
-import FormularioAdmin, { CampoTexto, CampoToggle } from '../components/ui/FormularioAdmin';
-import { useAlertaContext } from '../context/AlertaContext';
+// import { SEMESTRES_MOCK } from '../../mocks/semestres';
+import FormularioAdmin, { CampoTexto, CampoToggle } from '../../components/ui/FormularioAdmin';
+import { useAlertaContext } from '../../context/AlertaContext';
 
 interface SemestreFormData {
   nombre: string;

@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse, NivelVisibilidadResponse } from '../types/api.types';
-import { proyectosService } from '../services/proyectos.service';
-import { semestresService } from '../services/semestres.service';
-import { materiasService } from '../services/materias.service';
-import { lineasService } from '../services/lineas.service';
-import PageHeader from '../components/ui/PageHeader';
-import BadgeEstado from '../components/ui/BadgeEstado';
-import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
-import FiltrosProyectos from '../components/ui/FiltrosProyectos';
-import Paginacion from '../components/ui/Paginacion';
-import ModalConfirmacion from '../components/ui/ModalConfirmacion';
-import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
-import { useAlertaContext } from '../context/AlertaContext';
+import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse, NivelVisibilidadResponse } from '../../types/api.types';
+import { proyectosService } from '../../services/proyectos.service';
+import { semestresService } from '../../services/semestres.service';
+import { materiasService } from '../../services/materias.service';
+import { lineasService } from '../../services/lineas.service';
+import PageHeader from '../../components/ui/PageHeader';
+import BadgeEstado from '../../components/ui/BadgeEstado';
+import FilaTablaAcciones from '../../components/ui/FilaTablaAcciones';
+import FiltrosProyectos from '../../components/ui/FiltrosProyectos';
+import Paginacion from '../../components/ui/Paginacion';
+import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../../context/AlertaContext';
 
 interface FiltrosValores {
   busqueda: string;

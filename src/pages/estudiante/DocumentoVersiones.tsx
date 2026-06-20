@@ -5,6 +5,7 @@ import { documentosService } from '../../services/estudiante/documentos.service'
 import { proyectosService } from '../../services/proyectos.service';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
+import Desplegable from '../../components/ui/Desplegable';
 import type { ProyectoResponse, VersionDocumentoResponse } from '../../types/api.types';
 import { useAlertaContext } from '../../context/AlertaContext';
 
@@ -196,9 +197,9 @@ export default function DocumentoVersiones() {
         </p>
       </div>
 
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col md:flex-row gap-5 items-start">
         {/* Panel izquierdo */}
-        <div className="flex flex-col gap-4 w-[340px] shrink-0">
+        <div className="flex flex-col gap-4 w-full md:w-[340px] md:shrink-0">
           {/* Formulario subir versión */}
           <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-5">
             <h2 className="text-[15px] font-bold text-[#111827] mb-4">Subir Nueva Versión</h2>
@@ -208,16 +209,17 @@ export default function DocumentoVersiones() {
                 <label className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.08em]">
                   Tipo de Documento
                 </label>
-                <select
-                  value={idTipo}
-                  onChange={(e) => { setIdTipo(Number(e.target.value) as typeof idTipo); setErroresForm((p) => ({ ...p, tipo: '' })); }}
-                  className={`w-full py-2.5 px-3 bg-[#F9FAFB] border rounded-lg text-[13px] text-[#111827] outline-none transition-colors font-sans appearance-none cursor-pointer ${erroresForm.tipo ? 'border-[#EF4444]' : 'border-[#E5E7EB] focus:border-[#B91C1C]'}`}
-                >
-                  <option value="">Seleccionar tipo...</option>
-                  {TIPOS_DOCUMENTO.map((t) => (
-                    <option key={t.id} value={t.id}>{t.nombre}</option>
-                  ))}
-                </select>
+                <Desplegable
+                  valor={idTipo === '' ? '' : String(idTipo)}
+                  onChange={(v) => { setIdTipo(v === '' ? '' : Number(v)); setErroresForm((p) => ({ ...p, tipo: '' })); }}
+                  opciones={[
+                    { valor: '', etiqueta: 'Seleccionar tipo...' },
+                    ...TIPOS_DOCUMENTO.map((t) => ({ valor: String(t.id), etiqueta: t.nombre })),
+                  ]}
+                  ariaLabel="Tipo de documento"
+                  error={!!erroresForm.tipo}
+                  className="w-full"
+                />
                 {erroresForm.tipo && <p className="text-xs text-[#EF4444]">{erroresForm.tipo}</p>}
               </div>
 
@@ -343,7 +345,7 @@ export default function DocumentoVersiones() {
         </div>
 
         {/* Panel derecho — historial de versiones */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full min-w-0 md:flex-1">
           <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F3F4F6]">
               <h2 className="text-[15px] font-bold text-[#111827]">Historial de Versiones</h2>
@@ -373,12 +375,12 @@ export default function DocumentoVersiones() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[14px] font-semibold text-[#111827] truncate">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[14px] font-semibold text-[#111827] truncate min-w-0 flex-1">
                               {v.nombreArchivo}
                             </span>
                             {esActual && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-[#16A34A] bg-[#DCFCE7]">
+                              <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-[#16A34A] bg-[#DCFCE7]">
                                 Actual
                               </span>
                             )}

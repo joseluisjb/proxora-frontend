@@ -145,6 +145,7 @@ export default function ProyectoEvaluarDetalle() {
   const [errorComentario, setErrorComentario] = useState<string | null>(null)
   const [descargando, setDescargando] = useState<string | null>(null)
   const [historialAbierto, setHistorialAbierto] = useState(false)
+  const [historialEvalAbierto, setHistorialEvalAbierto] = useState(false)
   const { modalProps, abrirModal } = useModalConfirmacion()
 
   const cargar = useCallback(async () => {
@@ -232,7 +233,7 @@ export default function ProyectoEvaluarDetalle() {
           </svg>
           Evaluaciones
         </button>
-        <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 320px' }}>
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-[1fr_320px]">
           <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 shadow-sm">
             <Skeleton />
           </div>
@@ -273,6 +274,10 @@ export default function ProyectoEvaluarDetalle() {
     (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
   )
 
+  const evaluacionesOrdenadas = [...evaluaciones].sort(
+    (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
+  )
+
   const estadoCfg = ESTADO_CFG[proyecto.estado] ?? { label: proyecto.estado, className: 'bg-[#F3F4F6] text-[#6B7280]' }
 
   return (
@@ -291,7 +296,7 @@ export default function ProyectoEvaluarDetalle() {
       </button>
 
       {/* Dos columnas */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 320px', alignItems: 'start' }}>
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-[1fr_320px] items-start">
 
         {/* ── Columna izquierda ── */}
         <div className="flex flex-col gap-5">
@@ -520,7 +525,7 @@ export default function ProyectoEvaluarDetalle() {
             <div className="px-5 py-4 border-b border-[#F3F4F6]">
               <h2 className="text-[14px] font-bold text-[#111827]">Historial de Evaluaciones</h2>
             </div>
-            {evaluaciones.length === 0 ? (
+            {evaluacionesOrdenadas.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
                 <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#D1D5DB" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -529,9 +534,32 @@ export default function ProyectoEvaluarDetalle() {
               </div>
             ) : (
               <div className="p-5 flex flex-col gap-3">
-                {evaluaciones.map((ev) => (
-                  <TarjetaEvaluacionHistorial key={ev.id} ev={ev} />
-                ))}
+                <TarjetaEvaluacionHistorial ev={evaluacionesOrdenadas[0]} />
+
+                {evaluacionesOrdenadas.length > 1 && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setHistorialEvalAbierto((v) => !v)}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-[#6B7280] hover:text-[#B91C1C] transition-colors duration-150 w-full"
+                    >
+                      <svg
+                        width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        className={`transition-transform duration-300 ${historialEvalAbierto ? 'rotate-180' : ''}`}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Calificaciones anteriores ({evaluacionesOrdenadas.length - 1})
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${historialEvalAbierto ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className="flex flex-col gap-3 pt-3">
+                        {evaluacionesOrdenadas.slice(1).map((ev) => (
+                          <TarjetaEvaluacionHistorial key={ev.id} ev={ev} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

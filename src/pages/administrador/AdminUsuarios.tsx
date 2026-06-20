@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { UsuarioResponse } from '../types/api.types';
-import { usuariosService } from '../services/usuarios.service';
-import PageHeader from '../components/ui/PageHeader';
-import AvatarIniciales from '../components/ui/AvatarIniciales';
-import BadgeEstado from '../components/ui/BadgeEstado';
-import FiltroRoles from '../components/ui/FiltroRoles';
-import BarraBusqueda from '../components/ui/BarraBusqueda';
-import BotonAccionUsuario from '../components/ui/BotonAccionUsuario';
-import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
-import Paginacion from '../components/ui/Paginacion';
-import ModalConfirmacion from '../components/ui/ModalConfirmacion';
-import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
-import { useAlertaContext } from '../context/AlertaContext';
+import type { UsuarioResponse } from '../../types/api.types';
+import { usuariosService } from '../../services/usuarios.service';
+import PageHeader from '../../components/ui/PageHeader';
+import AvatarIniciales from '../../components/ui/AvatarIniciales';
+import BadgeEstado from '../../components/ui/BadgeEstado';
+import FiltroRoles from '../../components/ui/FiltroRoles';
+import BarraBusqueda from '../../components/ui/BarraBusqueda';
+import BotonAccionUsuario from '../../components/ui/BotonAccionUsuario';
+import FilaTablaAcciones from '../../components/ui/FilaTablaAcciones';
+import Paginacion from '../../components/ui/Paginacion';
+import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../../context/AlertaContext';
 
 type FiltroRol = 'todos' | 'docente' | 'estudiante';
 
@@ -140,11 +140,6 @@ export default function AdminUsuarios() {
         <FiltroRoles rolActivo={filtroRol} onChange={handleCambioFiltroRol} />
         <div className="flex items-center gap-2">
           <BarraBusqueda placeholder="Buscar por nombre o correo..." valor={busqueda} onChange={setBusqueda} />
-          <button className="w-9 h-9 border-[1.5px] border-[#E0E0E0] bg-white rounded-lg flex items-center justify-center cursor-pointer text-[#6B6B6B] transition-all hover:bg-[#F2F2F2] hover:text-[#111111]" title="Más opciones" aria-label="Más opciones">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import NavbarTop from '../ui/NavbarTop';
 import SidebarDocente from './SidebarDocente';
@@ -7,13 +8,18 @@ import { useAlerta } from '../../hooks/useAlerta';
 
 export default function LayoutDocente() {
   const { alertaProps, mostrarAlerta } = useAlerta();
+  const [sidebarAbierto, setSidebarAbierto] = useState(false);
+
   return (
     <AlertaContext.Provider value={{ mostrarAlerta }}>
       <div className="flex flex-col min-h-screen">
-        <NavbarTop />
+        <NavbarTop onToggleMenu={() => setSidebarAbierto((prev) => !prev)} />
         <div className="flex flex-1 pt-14">
-          <SidebarDocente />
-          <main className="flex-1 ml-[220px] p-8 min-h-[calc(100vh-56px)] bg-[#F9FAFB] overflow-y-auto">
+          <SidebarDocente
+            abierto={sidebarAbierto}
+            onCerrar={() => setSidebarAbierto(false)}
+          />
+          <main className="flex-1 min-w-0 lg:ml-[220px] p-4 lg:p-8 min-h-[calc(100vh-56px)] bg-[#F9FAFB] overflow-y-auto">
             <Outlet />
           </main>
         </div>

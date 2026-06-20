@@ -156,7 +156,7 @@ export default function ProyectoDetalleEstudiante() {
       <ModalConfirmacion {...modalProps} />
 
       {/* Breadcrumb + acciones */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
         <button
           type="button"
           onClick={() => navigate('/estudiante/mis-proyectos')}
