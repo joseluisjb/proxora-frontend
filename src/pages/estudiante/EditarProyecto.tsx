@@ -1,44 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { UsuarioResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse } from '../../types/api.types';
+import type { UsuarioResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse, NivelVisibilidadResponse } from '../../types/api.types';
 import { registrarService } from '../../services/estudiante/registrar.service';
 import { misProyectosService } from '../../services/estudiante/misProyectos.service';
+import { proyectosService } from '../../services/proyectos.service';
 import { useAuth } from '../../context/AuthContext';
 import AvatarIniciales from '../../components/ui/AvatarIniciales';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
 
-const NIVELES_VISIBILIDAD = [
-  { id: 1, nombre: 'Solo metadatos' },
-  { id: 2, nombre: 'Solo lectura' },
-  { id: 3, nombre: 'Lectura y descarga' },
-] as const;
-
-const DESCRIPCIONES_VISIBILIDAD: Record<number, string> = {
-  1: 'El público solo verá el título, resumen y equipo. Los documentos no estarán accesibles.',
-  2: 'El público puede leer los resúmenes y ver los documentos en pantalla sin posibilidad de descarga.',
-  3: 'Los documentos son públicos y pueden descargarse libremente.',
+const ETIQUETA_VISIBILIDAD: Record<string, string> = {
+  solo_metadatos:   'Solo metadatos',
+  lectura:          'Solo lectura',
+  lectura_descarga: 'Lectura y descarga',
 };
 
-const VISIBILIDAD_A_ID: Record<string, number> = {
-  solo_metadatos: 1,
-  lectura: 2,
-  lectura_descarga: 3,
-};
-
-const ESTADOS_PROYECTO = [
-  { id: 1, nombre: 'En Desarrollo' },
-  { id: 2, nombre: 'Bajo Revisión' },
-  { id: 3, nombre: 'Retrasado' },
-  { id: 4, nombre: 'Finalizado' },
-];
-
-const ESTADO_A_ID: Record<string, number> = {
-  en_desarrollo: 1,
-  bajo_revision: 2,
-  retrasado: 3,
-  finalizado: 4,
+const ETIQUETA_ESTADO: Record<string, string> = {
+  en_desarrollo: 'En Desarrollo',
+  bajo_revision: 'Bajo Revisión',
+  retrasado: 'Retrasado',
+  finalizado: 'Finalizado',
 };
 
 export default function EditarProyecto() {
@@ -53,9 +35,11 @@ export default function EditarProyecto() {
   const [resumen, setResumen] = useState('');
   const [idSemestre, setIdSemestre] = useState('');
   const [idMateria, setIdMateria] = useState('');
-  const [idEstado, setIdEstado] = useState(1);
+  const [idEstado, setIdEstado] = useState(0);
+  const [estadosProyecto, setEstadosProyecto] = useState<EstadoProyectoResponse[]>([]);
   const [lineasIds, setLineasIds] = useState<string[]>([]);
   const [idVisibilidad, setIdVisibilidad] = useState(2);
+  const [nivelesVisibilidad, setNivelesVisibilidad] = useState<NivelVisibilidadResponse[]>([]);
 
   const [integrantesSeleccionados, setIntegrantesSeleccionados] = useState<UsuarioResponse[]>([]);
   const [directoresSeleccionados, setDirectoresSeleccionados] = useState<UsuarioResponse[]>([]);
@@ -97,18 +81,23 @@ export default function EditarProyecto() {
       registrarService.listarLineasActivas({ size: 100 }).catch(() => registrarService.listarLineas({ size: 100 })),
       registrarService.listarDocentes({ size: 50 }).catch(() => ({ content: [] as UsuarioResponse[] })),
       registrarService.listarEstudiantes({ size: 200 }).catch(() => ({ content: [] as UsuarioResponse[] })),
+      registrarService.listarEstados().catch(() => [] as EstadoProyectoResponse[]),
+      proyectosService.listarNivelesVisibilidad().catch(() => [] as NivelVisibilidadResponse[]),
     ])
-      .then(([proyecto, semestres, materias, lineas, docentes, estudiantes]) => {
+      .then(([proyecto, semestres, materias, lineas, docentes, estudiantes, estados, niveles]) => {
         setSemestresActivos(semestres.content);
         setMateriasActivas(materias.content);
         setTodasLineas(lineas.content);
         setTodoDocentes(docentes.content);
         setTodosEstudiantes(estudiantes.content);
+        setEstadosProyecto(estados);
+        setNivelesVisibilidad(niveles);
 
         setTitulo(proyecto.titulo);
         setResumen(proyecto.resumen);
-        setIdEstado(ESTADO_A_ID[proyecto.estado] ?? 1);
-        setIdVisibilidad(VISIBILIDAD_A_ID[proyecto.visibilidad] ?? 2);
+        const estadoEncontrado = estados.find((e) => e.nombre === proyecto.estado);
+        if (estadoEncontrado) setIdEstado(estadoEncontrado.id);
+        setIdVisibilidad(niveles.find((n) => n.nombre === proyecto.visibilidad)?.id ?? 2);
         setLineasIds(proyecto.lineas.map((l) => l.id));
 
         setIntegrantesSeleccionados(
@@ -331,7 +320,9 @@ export default function EditarProyecto() {
             <div className={campoMb}>
               <label htmlFor="ep-estado" className={labelCls}>ESTADO DEL PROYECTO</label>
               <select id="ep-estado" className={selectCls} value={idEstado} onChange={(e) => setIdEstado(Number(e.target.value))}>
-                {ESTADOS_PROYECTO.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                {estadosProyecto.map((e) => (
+                  <option key={e.id} value={e.id}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
+                ))}
               </select>
             </div>
             <div className={campoMb}>
@@ -540,9 +531,11 @@ export default function EditarProyecto() {
             <div className={campoMb}>
               <label htmlFor="ep-visibilidad" className={labelCls}>NIVEL DE VISIBILIDAD</label>
               <select id="ep-visibilidad" className={selectCls} value={idVisibilidad} onChange={(e) => setIdVisibilidad(Number(e.target.value))}>
-                {NIVELES_VISIBILIDAD.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+                {nivelesVisibilidad.map((v) => (
+                  <option key={v.id} value={v.id}>{ETIQUETA_VISIBILIDAD[v.nombre] ?? v.nombre}</option>
+                ))}
               </select>
-              <p className={ayudaCls}>{DESCRIPCIONES_VISIBILIDAD[idVisibilidad]}</p>
+              <p className={ayudaCls}>{nivelesVisibilidad.find((v) => v.id === idVisibilidad)?.descripcion ?? ''}</p>
             </div>
             <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-lg p-3 mt-3">
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#D97706" strokeWidth={2} className="shrink-0 mt-px" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>

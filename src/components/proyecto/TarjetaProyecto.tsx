@@ -73,7 +73,7 @@ export function TarjetaProyecto({
 
       <h3 className="text-lg font-bold text-[#111827] m-0 mb-2 line-clamp-2 leading-[1.4]">{proyecto.titulo}</h3>
 
-      <p className="text-[13px] text-[#6B7280] m-0 mb-3.5 line-clamp-3 leading-relaxed">{proyecto.resumen}</p>
+      <p className="text-[13px] text-[#6B7280] m-0 mb-3.5 line-clamp-2 leading-relaxed">{proyecto.resumen}</p>
 
       <div className={`flex mb-3 ${modo === 'lista' ? 'flex-row flex-wrap gap-3' : 'flex-col gap-1.5'}`}>
         <div className="flex items-center gap-1.5 text-[13px] text-[#374151]">
@@ -95,13 +95,27 @@ export function TarjetaProyecto({
           </div>
         )}
 
-        {mostrarDirector && (
-          <div className="flex items-center gap-1.5 text-[13px] text-[#374151]">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#9CA3AF] shrink-0" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span>Dir: {formatearDirectores(proyecto.directores)}</span>
-          </div>
+        {mostrarDirector && proyecto.directores.length > 0 && (
+          <>
+            <div className="flex items-center gap-1.5 text-[13px] text-[#374151]">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#9CA3AF] shrink-0" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="truncate">
+                <span className="text-[#9CA3AF]">Director: </span>
+                {`${proyecto.directores[0].nombre} ${proyecto.directores[0].apellido}`}
+              </span>
+            </div>
+            {proyecto.directores.length > 1 && (
+              <div className="flex items-center gap-1.5 text-[13px] text-[#374151]">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="transparent" strokeWidth={2} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">
+                  <span className="text-[#9CA3AF]">Co-Directores: </span>
+                  {proyecto.directores.slice(1).map((d) => `${d.nombre} ${d.apellido}`).join(', ')}
+                </span>
+              </div>
+            )}
+          </>
         )}
 
         {mostrarVisibilidad && (

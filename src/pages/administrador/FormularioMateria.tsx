@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { materiasService } from '../services/materias.service';
+import { materiasService } from '../../services/materias.service';
 // MOCK DATA - reemplazado por llamada real a materiasService
-// import { MATERIAS_MOCK } from '../mocks/materias';
-import FormularioAdmin, { CampoTexto, CampoToggle } from '../components/ui/FormularioAdmin';
-import { useAlertaContext } from '../context/AlertaContext';
+// import { MATERIAS_MOCK } from '../../mocks/materias';
+import FormularioAdmin, { CampoTexto, CampoToggle } from '../../components/ui/FormularioAdmin';
+import { useAlertaContext } from '../../context/AlertaContext';
 
 interface MateriaFormData {
   nombre: string;

@@ -1,5 +1,11 @@
 export type NivelVisibilidad = 'solo_metadatos' | 'lectura' | 'lectura_descarga'
 
+export interface NivelVisibilidadResponse {
+  id: number
+  nombre: string
+  descripcion: string
+}
+
 export interface PaginatedResponse<T> {
   content: T[]
   totalElements: number
@@ -118,6 +124,11 @@ export interface VersionDocumentoCreateRequest {
 export interface EvaluadorAsignacionRequest {
   idDocente: string
   idAsignadoPor: string
+}
+
+export interface EstadoProyectoResponse {
+  id: number
+  nombre: string
 }
 
 export interface ProyectoUpdateRequest {

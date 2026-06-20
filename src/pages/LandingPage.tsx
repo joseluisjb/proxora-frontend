@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   ProyectoResponse,
   SemestreResponse,
   MateriaResponse,
   LineaInvestigacionResponse,
+  EstadoProyectoResponse,
+  NivelVisibilidadResponse,
 } from '../types/api.types';
 import { proyectosService } from '../services/proyectos.service';
 import { semestresService } from '../services/semestres.service';
@@ -38,10 +40,6 @@ function resolverModo(f: FiltrosValores): ModoConsulta {
   return 'todos'
 }
 
-const ESTADO_MAP: Record<string, number> = {
-  en_desarrollo: 1, finalizado: 2, bajo_revision: 3, retrasado: 4,
-}
-
 export default function LandingPage() {
   const { alertaProps, mostrarAlerta } = useAlerta()
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([])
@@ -61,11 +59,21 @@ export default function LandingPage() {
   const [semestres, setSemestres] = useState<SemestreResponse[]>([])
   const [materias, setMaterias] = useState<MateriaResponse[]>([])
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([])
+  const [estados, setEstados] = useState<EstadoProyectoResponse[]>([])
+  const [visibilidades, setVisibilidades] = useState<NivelVisibilidadResponse[]>([])
+  const estadosMapRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     semestresService.listar({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {})
     materiasService.listar({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {})
     lineasService.listar({ size: 100 }).then((r) => setLineas(r.content)).catch(() => {})
+    proyectosService.listarEstados()
+      .then((lista) => {
+        estadosMapRef.current = Object.fromEntries(lista.map((e) => [e.nombre, e.id]))
+        setEstados(lista)
+      })
+      .catch(() => {})
+    proyectosService.listarNivelesVisibilidad().then(setVisibilidades).catch(() => {})
   }, [])
 
   const cargarProyectos = useCallback(async (f: FiltrosValores, pagina: number) => {
@@ -79,7 +87,7 @@ export default function LandingPage() {
       if (modo === 'busqueda') resultado = await proyectosService.buscar(f.busqueda.trim(), params)
       else if (modo === 'semestre') resultado = await proyectosService.listarPorSemestre(f.semestre, params)
       else if (modo === 'materia') resultado = await proyectosService.listarPorMateria(f.materia, params)
-      else if (modo === 'estado') resultado = await proyectosService.listarPorEstado(ESTADO_MAP[f.estado] ?? 1, params)
+      else if (modo === 'estado') resultado = await proyectosService.listarPorEstado(estadosMapRef.current[f.estado] ?? 1, params)
       else resultado = await proyectosService.listar({ ...params, sort: 'creadoEn,desc' })
 
       let contenido = resultado.content
@@ -127,6 +135,8 @@ export default function LandingPage() {
             semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
             materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
             lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
+            estados={estados}
+            visibilidades={visibilidades}
           />
         </div>
       </div>

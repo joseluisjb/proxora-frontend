@@ -25,5 +25,6 @@ dist-ssr
 *.sw?
 
 # Project Documentation & Tools (personal)
+.claude
 CLAUDE.md
 .claude/skills/

@@ -2,28 +2,29 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { misProyectosService } from '../../services/estudiante/misProyectos.service';
-import type { ProyectoResponse } from '../../types/api.types';
+import { proyectosService } from '../../services/proyectos.service';
+import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.types';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import Paginacion from '../../components/ui/Paginacion';
+import Desplegable from '../../components/ui/Desplegable';
 import { useAlertaContext } from '../../context/AlertaContext';
 
 const PAGINA_SIZE = 6;
 
 const ESTADO_CONFIG: Record<ProyectoResponse['estado'], { label: string; clases: string }> = {
-  en_desarrollo: { label: 'En Desarrollo', clases: 'text-[#16A34A] bg-[#DCFCE7]' },
-  bajo_revision: { label: 'Bajo Revisión', clases: 'text-[#D97706] bg-[#FEF3C7]' },
+  en_desarrollo: { label: 'En Desarrollo', clases: 'text-[#854D0E] bg-[#FEF9C3]' },
+  bajo_revision: { label: 'Bajo Revisión', clases: 'text-[#1E40AF] bg-[#DBEAFE]' },
   retrasado:     { label: 'Retrasado',     clases: 'text-[#B91C1C] bg-[#FEE2E2]' },
-  finalizado:    { label: 'Finalizado',    clases: 'text-[#1D4ED8] bg-[#DBEAFE]' },
+  finalizado:    { label: 'Finalizado',    clases: 'text-[#166534] bg-[#DCFCE7]' },
 };
 
-const OPCIONES_ESTADO = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'en_desarrollo', label: 'En Desarrollo' },
-  { value: 'bajo_revision', label: 'Bajo Revisión' },
-  { value: 'retrasado',     label: 'Retrasado' },
-  { value: 'finalizado',    label: 'Finalizado' },
-];
+const ETIQUETA_ESTADO: Record<string, string> = {
+  en_desarrollo: 'En Desarrollo',
+  finalizado:    'Finalizado',
+  bajo_revision: 'Bajo Revisión',
+  retrasado:     'Retrasado',
+};
 
 function MenuTarjeta({ onEditar, onEliminar }: { onEditar: () => void; onEliminar: () => void }) {
   const [abierto, setAbierto] = useState(false);
@@ -131,11 +132,27 @@ function TarjetaProyecto({
         </p>
       </div>
 
-      {proyecto.directores.length > 0 && (
-        <p className="text-[12px] text-[#9CA3AF]">
-          <span className="font-medium text-[#6B7280]">Director: </span>
-          {proyecto.directores.map((d) => `${d.nombre} ${d.apellido}`).join(', ')}
-        </p>
+      {(proyecto.integrantes.length > 0 || proyecto.directores.length > 0) && (
+        <div className="flex flex-col gap-1">
+          {proyecto.integrantes.length > 0 && (
+            <p className="text-[11px] text-[#6B7280] truncate">
+              {proyecto.integrantes.slice(0, 2).map((m) => `${m.nombre} ${m.apellido}`).join(', ')}
+              {proyecto.integrantes.length > 2 && ` +${proyecto.integrantes.length - 2} más`}
+            </p>
+          )}
+          {proyecto.directores.length > 0 && (
+            <p className="text-[11px] text-[#6B7280] truncate">
+              <span className="font-medium text-[#9CA3AF]">Director: </span>
+              {`${proyecto.directores[0].nombre} ${proyecto.directores[0].apellido}`}
+            </p>
+          )}
+          {proyecto.directores.length > 1 && (
+            <p className="text-[11px] text-[#6B7280] truncate">
+              <span className="font-medium text-[#9CA3AF]">Co-Directores: </span>
+              {proyecto.directores.slice(1).map((d) => `${d.nombre} ${d.apellido}`).join(', ')}
+            </p>
+          )}
+        </div>
       )}
 
       {(proyecto.semestre || proyecto.materia) && (
@@ -179,6 +196,7 @@ export default function MisProyectos() {
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [estadosDisponibles, setEstadosDisponibles] = useState<EstadoProyectoResponse[]>([]);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -200,6 +218,10 @@ export default function MisProyectos() {
   }, [usuario]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  useEffect(() => {
+    proyectosService.listarEstados().then(setEstadosDisponibles).catch(() => {});
+  }, []);
 
   useEffect(() => { setPaginaActual(1); }, [busqueda, filtroEstado]);
 
@@ -252,8 +274,8 @@ export default function MisProyectos() {
         </div>
 
         {!cargando && !error && proyectos.length > 0 && (
-          <div className="flex gap-3 mb-5">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap gap-3 mb-5">
+            <div className="relative flex-1 min-w-[200px]">
               <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -265,15 +287,16 @@ export default function MisProyectos() {
                 className="w-full pl-9 pr-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#B91C1C] transition-colors bg-white"
               />
             </div>
-            <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
-              className="px-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] focus:outline-none focus:border-[#B91C1C] transition-colors bg-white cursor-pointer shrink-0"
-            >
-              {OPCIONES_ESTADO.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+            <Desplegable
+              valor={filtroEstado}
+              onChange={setFiltroEstado}
+              opciones={[
+                { valor: '', etiqueta: 'Todos los estados' },
+                ...estadosDisponibles.map((e) => ({ valor: e.nombre, etiqueta: ETIQUETA_ESTADO[e.nombre] ?? e.nombre })),
+              ]}
+              ariaLabel="Filtrar por estado"
+              className="shrink-0"
+            />
           </div>
         )}
 

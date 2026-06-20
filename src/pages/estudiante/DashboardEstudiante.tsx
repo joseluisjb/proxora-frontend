@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   ProyectoResponse,
   SemestreResponse,
   MateriaResponse,
   LineaInvestigacionResponse,
+  EstadoProyectoResponse,
+  NivelVisibilidadResponse,
 } from '../../types/api.types';
 import { dashboardService } from '../../services/estudiante/dashboard.service';
+import { proyectosService } from '../../services/proyectos.service';
 import { GrillaProyectos } from '../../components/proyecto/GrillaProyectos';
 import FiltrosProyectos from '../../components/ui/FiltrosProyectos';
 import Paginacion from '../../components/ui/Paginacion';
@@ -33,10 +36,6 @@ function resolverModo(f: FiltrosValores): ModoConsulta {
   return 'todos'
 }
 
-const ESTADO_MAP: Record<string, number> = {
-  en_desarrollo: 1, finalizado: 2, bajo_revision: 3, retrasado: 4,
-}
-
 export default function DashboardEstudiante() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { mostrarAlerta } = useAlertaContext();
@@ -56,6 +55,9 @@ export default function DashboardEstudiante() {
   const [semestres, setSemestres] = useState<SemestreResponse[]>([])
   const [materias, setMaterias] = useState<MateriaResponse[]>([])
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([])
+  const [estados, setEstados] = useState<EstadoProyectoResponse[]>([])
+  const [visibilidades, setVisibilidades] = useState<NivelVisibilidadResponse[]>([])
+  const estadosMapRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (searchParams.get('registrado') === 'true') {
@@ -68,6 +70,13 @@ export default function DashboardEstudiante() {
     dashboardService.listarSemestres({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {})
     dashboardService.listarMaterias({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {})
     dashboardService.listarLineas({ size: 100 }).then((r) => setLineas(r.content)).catch(() => {})
+    proyectosService.listarEstados()
+      .then((lista) => {
+        estadosMapRef.current = Object.fromEntries(lista.map((e) => [e.nombre, e.id]))
+        setEstados(lista)
+      })
+      .catch(() => {})
+    proyectosService.listarNivelesVisibilidad().then(setVisibilidades).catch(() => {})
   }, [])
 
   const cargarProyectos = useCallback(async (f: FiltrosValores, pagina: number) => {
@@ -81,7 +90,7 @@ export default function DashboardEstudiante() {
       if (modo === 'busqueda') resultado = await dashboardService.buscarProyectos(f.busqueda.trim(), params)
       else if (modo === 'semestre') resultado = await dashboardService.listarPorSemestre(f.semestre, params)
       else if (modo === 'materia') resultado = await dashboardService.listarPorMateria(f.materia, params)
-      else if (modo === 'estado') resultado = await dashboardService.listarPorEstado(ESTADO_MAP[f.estado] ?? 1, params)
+      else if (modo === 'estado') resultado = await dashboardService.listarPorEstado(estadosMapRef.current[f.estado] ?? 1, params)
       else resultado = await dashboardService.listarProyectos({ ...params, sort: 'creadoEn,desc' })
 
       let contenido = resultado.content
@@ -115,29 +124,16 @@ export default function DashboardEstudiante() {
         semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
         materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
         lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
+        estados={estados}
+        visibilidades={visibilidades}
       />
 
       <div className="mt-6 animate-fade-in">
-        <div className="flex items-start justify-between mb-5 animate-slide-up">
-          <div>
-            <h2 className="text-xl font-bold text-[#111827] mb-1">Publicados recientemente</h2>
-            <p className="text-[13px] text-[#6B7280] max-w-[480px]">
-              Revisa las últimas contribuciones del programa de Ingeniería de Sistemas.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="w-[34px] h-[34px] flex items-center justify-center border border-[#B91C1C] rounded-md bg-[#B91C1C] text-white cursor-default"
-              aria-label="Vista en cuadrícula"
-              title="Vista cuadrícula"
-              aria-pressed="true"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z" />
-              </svg>
-            </button>
-          </div>
+        <div className="mb-5 animate-slide-up">
+          <h2 className="text-xl font-bold text-[#111827] mb-1">Publicados recientemente</h2>
+          <p className="text-[13px] text-[#6B7280] max-w-[480px]">
+            Revisa las últimas contribuciones del programa de Ingeniería de Sistemas.
+          </p>
         </div>
 
         <GrillaProyectos

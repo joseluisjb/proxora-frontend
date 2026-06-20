@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import NavbarTop from '../ui/NavbarTop';
-import SidebarEstudiante from './SidebarEstudiante';
+import SidebarDocente from './SidebarDocente';
 import Alerta from '../ui/Alerta';
 import { AlertaContext } from '../../context/AlertaContext';
 import { useAlerta } from '../../hooks/useAlerta';
 
-export default function LayoutEstudiante() {
+export default function LayoutDocente() {
   const { alertaProps, mostrarAlerta } = useAlerta();
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
 
@@ -15,7 +15,7 @@ export default function LayoutEstudiante() {
       <div className="flex flex-col min-h-screen">
         <NavbarTop onToggleMenu={() => setSidebarAbierto((prev) => !prev)} />
         <div className="flex flex-1 pt-14">
-          <SidebarEstudiante
+          <SidebarDocente
             abierto={sidebarAbierto}
             onCerrar={() => setSidebarAbierto(false)}
           />

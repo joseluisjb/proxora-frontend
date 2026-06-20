@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { LineaInvestigacionResponse } from '../types/api.types';
-import { lineasService } from '../services/lineas.service';
-import PageHeader from '../components/ui/PageHeader';
-import FilaTablaAcciones from '../components/ui/FilaTablaAcciones';
-import Paginacion from '../components/ui/Paginacion';
-import BotonPrimario from '../components/ui/BotonPrimario';
-import ModalConfirmacion from '../components/ui/ModalConfirmacion';
-import { useModalConfirmacion } from '../hooks/useModalConfirmacion';
-import { useAlertaContext } from '../context/AlertaContext';
+import type { LineaInvestigacionResponse } from '../../types/api.types';
+import { lineasService } from '../../services/lineas.service';
+import PageHeader from '../../components/ui/PageHeader';
+import FilaTablaAcciones from '../../components/ui/FilaTablaAcciones';
+import Paginacion from '../../components/ui/Paginacion';
+import BotonPrimario from '../../components/ui/BotonPrimario';
+import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
+import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
+import { useAlertaContext } from '../../context/AlertaContext';
 
 const REGISTROS_POR_PAGINA = 10;
 
