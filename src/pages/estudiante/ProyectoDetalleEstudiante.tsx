@@ -11,14 +11,23 @@ import { useAlertaContext } from '../../context/AlertaContext';
 type EstadoProyecto = ProyectoDetalleResponse['estado'];
 
 const ESTADO_CONFIG: Record<EstadoProyecto, { label: string; clases: string }> = {
-  en_desarrollo: { label: 'En Desarrollo', clases: 'bg-[#DCFCE7] text-[#16A34A]' },
-  finalizado:    { label: 'Finalizado',    clases: 'bg-[#DBEAFE] text-[#1D4ED8]' },
-  bajo_revision: { label: 'Bajo Revisión', clases: 'bg-[#FEF3C7] text-[#D97706]' },
+  en_desarrollo: { label: 'En Desarrollo', clases: 'bg-[#FEF9C3] text-[#854D0E]' },
+  finalizado:    { label: 'Finalizado',    clases: 'bg-[#DCFCE7] text-[#166534]' },
+  bajo_revision: { label: 'Bajo Revisión', clases: 'bg-[#DBEAFE] text-[#1E40AF]' },
   retrasado:     { label: 'Retrasado',     clases: 'bg-[#FEE2E2] text-[#B91C1C]' },
 };
 
 function formatearFecha(iso: string): string {
   return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso));
+}
+
+function formatearFechaHora(iso: string): string {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+  );
 }
 
 function formatearTamano(bytes: number | null): string {
@@ -66,6 +75,7 @@ export default function ProyectoDetalleEstudiante() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [descargando, setDescargando] = useState<Set<string>>(new Set());
+  const [historialAbierto, setHistorialAbierto] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!id) return;
@@ -146,7 +156,7 @@ export default function ProyectoDetalleEstudiante() {
       <ModalConfirmacion {...modalProps} />
 
       {/* Breadcrumb + acciones */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
         <button
           type="button"
           onClick={() => navigate('/estudiante/mis-proyectos')}
@@ -236,38 +246,105 @@ export default function ProyectoDetalleEstudiante() {
                 No hay versiones subidas para este proyecto.
               </p>
             ) : (() => {
-              const ver = proyecto.versiones[0];
+              const versiones = [...proyecto.versiones].sort(
+                (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
+              );
+              const [primera, ...resto] = versiones;
               return (
-                <div className="flex items-center justify-between gap-4 py-1">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {iconoMime(ver.mimeType)}
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-[#111827] m-0 mb-0.5 truncate">{ver.etiquetaVersion}</p>
-                      <p className="text-[11px] text-[#9CA3AF] m-0">
-                        {ver.tipoDocumento ?? 'Documento'} · {formatearTamano(ver.tamanoBytes)} · {formatearFecha(ver.creadoEn)}
-                      </p>
-                      {ver.subidoPor && (
-                        <p className="text-[11px] text-[#9CA3AF] m-0 mt-0.5">
-                          Subido por {ver.subidoPor.nombre} {ver.subidoPor.apellido}
+                <div className="flex flex-col gap-3">
+                  {/* Versión más reciente */}
+                  <div className="flex items-center justify-between gap-4 py-1">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {iconoMime(primera.mimeType)}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-[13px] font-semibold text-[#111827] m-0 truncate">{primera.etiquetaVersion}</p>
+                          <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#DCFCE7] text-[#166534]">MÁS RECIENTE</span>
+                        </div>
+                        <p className="text-[11px] text-[#9CA3AF] m-0">
+                          {primera.tipoDocumento ?? 'Documento'} · {formatearTamano(primera.tamanoBytes)} · {formatearFechaHora(primera.creadoEn)}
                         </p>
-                      )}
+                        {primera.subidoPor && (
+                          <p className="text-[11px] text-[#9CA3AF] m-0 mt-0.5">
+                            Subido por {primera.subidoPor.nombre} {primera.subidoPor.apellido}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-[#374151] border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B91C1C] hover:text-[#B91C1C] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleDescargar(primera.idProyecto, primera.id)}
+                      disabled={descargando.has(primera.id)}
+                    >
+                      {descargando.has(primera.id) ? (
+                        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      )}
+                      Descargar
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-[#374151] border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B91C1C] hover:text-[#B91C1C] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={() => handleDescargar(ver.idProyecto, ver.id)}
-                    disabled={descargando.has(ver.id)}
-                  >
-                    {descargando.has(ver.id) ? (
-                      <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    )}
-                    Descargar
-                  </button>
+
+                  {/* Historial colapsable */}
+                  {resto.length > 0 && (
+                    <div className="border-t border-[#F3F4F6] pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setHistorialAbierto((v) => !v)}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-[#6B7280] hover:text-[#B91C1C] transition-colors duration-150 w-full py-1"
+                      >
+                        <svg
+                          width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                          className={`transition-transform duration-300 ${historialAbierto ? 'rotate-180' : ''}`}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Historial de versiones ({resto.length})
+                      </button>
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ease-in-out ${historialAbierto ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
+                      >
+                        <div className="flex flex-col gap-3 pt-3">
+                          {resto.map((v) => (
+                            <div key={v.id} className="flex items-center justify-between gap-4 opacity-75">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {iconoMime(v.mimeType)}
+                                <div className="min-w-0">
+                                  <p className="text-[13px] font-medium text-[#374151] m-0 mb-0.5 truncate">{v.etiquetaVersion}</p>
+                                  <p className="text-[11px] text-[#9CA3AF] m-0">
+                                    {v.tipoDocumento ?? 'Documento'} · {formatearTamano(v.tamanoBytes)} · {formatearFechaHora(v.creadoEn)}
+                                  </p>
+                                  {v.subidoPor && (
+                                    <p className="text-[11px] text-[#9CA3AF] m-0 mt-0.5">
+                                      Subido por {v.subidoPor.nombre} {v.subidoPor.apellido}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-[#374151] border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B91C1C] hover:text-[#B91C1C] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={() => handleDescargar(v.idProyecto, v.id)}
+                                disabled={descargando.has(v.id)}
+                              >
+                                {descargando.has(v.id) ? (
+                                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                )}
+                                Descargar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { lineasService } from '../services/lineas.service';
+import { lineasService } from '../../services/lineas.service';
 // MOCK DATA - reemplazado por llamada real a lineasService
-// import { LINEAS_MOCK } from '../mocks/lineas';
-import FormularioAdmin, { CampoTexto, CampoTextarea, CampoToggle } from '../components/ui/FormularioAdmin';
-import { useAlertaContext } from '../context/AlertaContext';
+// import { LINEAS_MOCK } from '../../mocks/lineas';
+import FormularioAdmin, { CampoTexto, CampoTextarea, CampoToggle } from '../../components/ui/FormularioAdmin';
+import { useAlertaContext } from '../../context/AlertaContext';
 
 interface LineaInvestigacionFormData {
   nombre: string;

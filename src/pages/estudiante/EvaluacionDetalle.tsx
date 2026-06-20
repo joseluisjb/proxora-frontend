@@ -6,16 +6,19 @@ import { useAlertaContext } from '../../context/AlertaContext';
 
 function Iniciales({ nombre, apellido }: { nombre: string; apellido: string }) {
   return (
-    <div className="w-10 h-10 rounded-full bg-[#B91C1C] flex items-center justify-center text-white text-[13px] font-bold shrink-0 select-none">
+    <div className="w-7 h-7 rounded-full bg-[#B91C1C] flex items-center justify-center text-white text-[10px] font-bold shrink-0 select-none">
       {nombre[0]?.toUpperCase()}{apellido[0]?.toUpperCase()}
     </div>
   );
 }
 
-function formatearFechaLarga(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-CO', {
-    month: 'long', day: 'numeric', year: 'numeric',
-  });
+function formatearFechaHora(iso: string): string {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString('es-CO', { month: 'long', day: 'numeric', year: 'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+  );
 }
 
 function BarraPuntaje({ puntuacion, max = 5 }: { puntuacion: number; max?: number }) {
@@ -35,37 +38,32 @@ function BarraPuntaje({ puntuacion, max = 5 }: { puntuacion: number; max?: numbe
 
 function TarjetaEvaluacion({ ev }: { ev: EvaluacionResponse }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-5 flex flex-col gap-4 animate-slide-up">
-      <div className="flex items-start justify-between gap-4">
+    <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm px-4 py-3.5 flex flex-col gap-2.5 animate-slide-up">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-[16px] font-bold text-[#111827] leading-snug mb-1">
-            Evaluación
-          </h3>
-          <p className="text-[12px] text-[#9CA3AF]">
-            Registrada el {formatearFechaLarga(ev.creadoEn)} por{' '}
+          <p className="text-[11px] text-[#9CA3AF]">
+            {formatearFechaHora(ev.creadoEn)} ·{' '}
             <span className="font-medium text-[#6B7280]">
               {ev.docente.nombre} {ev.docente.apellido}
             </span>
           </p>
         </div>
-
-        <div className="flex flex-col items-end shrink-0">
-          <span className="text-[32px] font-bold text-[#111827] leading-none">
-            {ev.calificacion.toFixed(1)}
-          </span>
-          <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em] mt-0.5">
-            / 5.0
-          </span>
+        <div className="flex items-baseline gap-1 shrink-0">
+          <span className="text-[22px] font-bold text-[#111827] leading-none">{ev.calificacion.toFixed(1)}</span>
+          <span className="text-[11px] text-[#9CA3AF]">/ 5.0</span>
         </div>
       </div>
 
       <BarraPuntaje puntuacion={ev.calificacion} />
 
       {ev.comentario && (
-        <div className="flex gap-3 bg-[#F9FAFB] border border-[#F3F4F6] rounded-xl p-4">
-          <Iniciales nombre={ev.docente.nombre} apellido={ev.docente.apellido} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] text-[#374151] leading-relaxed">{ev.comentario}</p>
+        <div className="pt-1">
+          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em] mb-1.5">Retroalimentación</p>
+          <div className="flex gap-2.5 bg-[#F9FAFB] border border-[#F3F4F6] rounded-lg px-3 py-2.5">
+            <Iniciales nombre={ev.docente.nombre} apellido={ev.docente.apellido} />
+            <div className="flex-1 min-w-0 self-center">
+              <p className="text-[12px] text-[#374151] leading-relaxed">{ev.comentario}</p>
+            </div>
           </div>
         </div>
       )}
@@ -129,10 +127,7 @@ export default function EvaluacionDetalle() {
     );
   }
 
-  const promedioTotal =
-    evaluaciones.length > 0
-      ? evaluaciones.reduce((acc, ev) => acc + ev.calificacion, 0) / evaluaciones.length
-      : null;
+  const ultimaNota = evaluaciones.length > 0 ? evaluaciones[0].calificacion : null;
 
   return (
     <div className="animate-fade-in">
@@ -162,24 +157,31 @@ export default function EvaluacionDetalle() {
         </p>
       </div>
 
-      {/* Resumen de promedio */}
-      {promedioTotal !== null && (
+      {/* Nota final */}
+      {ultimaNota !== null && (
         <div className="flex items-center gap-4 bg-white rounded-xl border border-[#E5E7EB] shadow-sm px-5 py-4 mb-5 animate-slide-up">
           <div className="flex flex-col">
             <span className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em]">
-              Promedio Ponderado
+              Nota Final
             </span>
             <span className="text-[28px] font-bold text-[#111827] leading-tight">
-              {promedioTotal.toFixed(2)}
+              {ultimaNota.toFixed(2)}
             </span>
           </div>
           <div className="flex-1">
-            <BarraPuntaje puntuacion={promedioTotal} />
+            <BarraPuntaje puntuacion={ultimaNota} />
           </div>
           <div className="text-[13px] text-[#6B7280]">
-            {evaluaciones.length} evaluación{evaluaciones.length !== 1 ? 'es' : ''}
+            {evaluaciones.length} {evaluaciones.length === 1 ? 'evaluación' : 'evaluaciones'}
           </div>
         </div>
+      )}
+
+      {/* Historial */}
+      {evaluaciones.length > 0 && (
+        <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-[0.08em] mb-3">
+          Historial
+        </p>
       )}
 
       {/* Lista de evaluaciones */}

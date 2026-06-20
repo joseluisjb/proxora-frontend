@@ -8,9 +8,13 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const raw = localStorage.getItem('proxora_usuario')
   if (raw) {
-    const usuario = JSON.parse(raw)
-    if (usuario?.token) {
-      config.headers.Authorization = `Bearer ${usuario.token}`
+    try {
+      const usuario = JSON.parse(raw)
+      if (usuario?.token) {
+        config.headers.set('Authorization', `Bearer ${usuario.token}`)
+      }
+    } catch {
+      // JSON inválido en localStorage, se ignora
     }
   }
   return config

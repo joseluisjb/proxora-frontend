@@ -1,11 +1,24 @@
 interface NavbarTopProps {
   onClickPerfil?: () => void;
+  onToggleMenu?: () => void;
 }
 
-export default function NavbarTop({ onClickPerfil }: NavbarTopProps) {
+export default function NavbarTop({ onClickPerfil, onToggleMenu }: NavbarTopProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-[#EBEBEB] flex items-center justify-between px-6 z-[200] animate-fade-in">
-      <span className="text-lg font-bold text-[#C0392B] tracking-[-0.03em]">Proxora</span>
+    <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-[#EBEBEB] flex items-center justify-between px-4 z-[200] animate-fade-in">
+      <div className="flex items-center gap-2">
+        <button
+          className="lg:hidden w-9 h-9 rounded-lg bg-transparent border-none flex items-center justify-center cursor-pointer text-[#3D3D3D] hover:bg-[#F2F2F2] transition-colors"
+          onClick={onToggleMenu}
+          aria-label="Abrir o cerrar menú"
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <span className="text-lg font-bold text-[#C0392B] tracking-[-0.03em]">Proxora</span>
+      </div>
+
       <button
         className="w-9 h-9 rounded-full bg-[#F2F2F2] border-none flex items-center justify-center cursor-pointer text-[#3D3D3D] hover:text-[#111111] transition-colors"
         onClick={onClickPerfil}

@@ -7,6 +7,8 @@ import type {
   ProyectoCreateRequest,
   VersionDocumentoCreateRequest,
   EvaluadorAsignacionRequest,
+  EstadoProyectoResponse,
+  NivelVisibilidadResponse,
 } from '../types/api.types'
 
 export const proyectosService = {
@@ -69,4 +71,10 @@ export const proyectosService = {
 
   obtenerEvaluaciones: (idProyecto: string) =>
     api.get<EvaluacionResponse[]>(`/proyectos/${idProyecto}/evaluaciones`).then((r) => r.data),
+
+  listarEstados: () =>
+    api.get<EstadoProyectoResponse[]>('/catalogos/estados-proyecto').then((r) => r.data),
+
+  listarNivelesVisibilidad: () =>
+    api.get<NivelVisibilidadResponse[]>('/catalogos/niveles-visibilidad').then((r) => r.data),
 }
