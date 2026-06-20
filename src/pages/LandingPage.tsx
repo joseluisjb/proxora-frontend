@@ -5,6 +5,7 @@ import type {
   MateriaResponse,
   LineaInvestigacionResponse,
   EstadoProyectoResponse,
+  NivelVisibilidadResponse,
 } from '../types/api.types';
 import { proyectosService } from '../services/proyectos.service';
 import { semestresService } from '../services/semestres.service';
@@ -59,6 +60,7 @@ export default function LandingPage() {
   const [materias, setMaterias] = useState<MateriaResponse[]>([])
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([])
   const [estados, setEstados] = useState<EstadoProyectoResponse[]>([])
+  const [visibilidades, setVisibilidades] = useState<NivelVisibilidadResponse[]>([])
   const estadosMapRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
@@ -71,6 +73,7 @@ export default function LandingPage() {
         setEstados(lista)
       })
       .catch(() => {})
+    proyectosService.listarNivelesVisibilidad().then(setVisibilidades).catch(() => {})
   }, [])
 
   const cargarProyectos = useCallback(async (f: FiltrosValores, pagina: number) => {
@@ -133,6 +136,7 @@ export default function LandingPage() {
             materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
             lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
             estados={estados}
+            visibilidades={visibilidades}
           />
         </div>
       </div>

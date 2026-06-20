@@ -12,10 +12,10 @@ import { useAlertaContext } from '../../context/AlertaContext';
 const PAGINA_SIZE = 6;
 
 const ESTADO_CONFIG: Record<ProyectoResponse['estado'], { label: string; clases: string }> = {
-  en_desarrollo: { label: 'En Desarrollo', clases: 'text-[#16A34A] bg-[#DCFCE7]' },
-  bajo_revision: { label: 'Bajo Revisión', clases: 'text-[#D97706] bg-[#FEF3C7]' },
+  en_desarrollo: { label: 'En Desarrollo', clases: 'text-[#854D0E] bg-[#FEF9C3]' },
+  bajo_revision: { label: 'Bajo Revisión', clases: 'text-[#1E40AF] bg-[#DBEAFE]' },
   retrasado:     { label: 'Retrasado',     clases: 'text-[#B91C1C] bg-[#FEE2E2]' },
-  finalizado:    { label: 'Finalizado',    clases: 'text-[#1D4ED8] bg-[#DBEAFE]' },
+  finalizado:    { label: 'Finalizado',    clases: 'text-[#166534] bg-[#DCFCE7]' },
 };
 
 const ETIQUETA_ESTADO: Record<string, string> = {
@@ -131,11 +131,27 @@ function TarjetaProyecto({
         </p>
       </div>
 
-      {proyecto.directores.length > 0 && (
-        <p className="text-[12px] text-[#9CA3AF]">
-          <span className="font-medium text-[#6B7280]">Director: </span>
-          {proyecto.directores.map((d) => `${d.nombre} ${d.apellido}`).join(', ')}
-        </p>
+      {(proyecto.integrantes.length > 0 || proyecto.directores.length > 0) && (
+        <div className="flex flex-col gap-1">
+          {proyecto.integrantes.length > 0 && (
+            <p className="text-[11px] text-[#6B7280] truncate">
+              {proyecto.integrantes.slice(0, 2).map((m) => `${m.nombre} ${m.apellido}`).join(', ')}
+              {proyecto.integrantes.length > 2 && ` +${proyecto.integrantes.length - 2} más`}
+            </p>
+          )}
+          {proyecto.directores.length > 0 && (
+            <p className="text-[11px] text-[#6B7280] truncate">
+              <span className="font-medium text-[#9CA3AF]">Director: </span>
+              {`${proyecto.directores[0].nombre} ${proyecto.directores[0].apellido}`}
+            </p>
+          )}
+          {proyecto.directores.length > 1 && (
+            <p className="text-[11px] text-[#6B7280] truncate">
+              <span className="font-medium text-[#9CA3AF]">Co-Directores: </span>
+              {proyecto.directores.slice(1).map((d) => `${d.nombre} ${d.apellido}`).join(', ')}
+            </p>
+          )}
+        </div>
       )}
 
       {(proyecto.semestre || proyecto.materia) && (

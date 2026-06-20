@@ -172,6 +172,7 @@ export default function DocumentoVersiones() {
   }
 
   const director = proyecto.directores[0];
+  const codirectores = proyecto.directores.slice(1);
   const versionActual = versiones[0];
 
   return (
@@ -309,6 +310,14 @@ export default function DocumentoVersiones() {
                   </span>
                 </div>
               )}
+              {codirectores.length > 0 && (
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-[13px] text-[#9CA3AF] shrink-0">Co-Directores</span>
+                  <span className="text-[13px] font-semibold text-[#111827] text-right">
+                    {codirectores.map((d) => `${d.nombre} ${d.apellido}`).join(', ')}
+                  </span>
+                </div>
+              )}
               <div className="flex items-start justify-between gap-4">
                 <span className="text-[13px] text-[#9CA3AF] shrink-0">Última Modificación</span>
                 <span className="text-[13px] font-semibold text-[#111827] text-right">
@@ -336,20 +345,8 @@ export default function DocumentoVersiones() {
         {/* Panel derecho — historial de versiones */}
         <div className="flex-1 min-w-0">
           <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F3F4F6]">
+            <div className="px-5 py-4 border-b border-[#F3F4F6]">
               <h2 className="text-[15px] font-bold text-[#111827]">Historial de Versiones</h2>
-              <div className="flex items-center gap-2">
-                <button type="button" className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:text-[#374151] hover:bg-[#F3F4F6] transition-colors duration-150" aria-label="Filtrar">
-                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
-                  </svg>
-                </button>
-                <button type="button" className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:text-[#374151] hover:bg-[#F3F4F6] transition-colors duration-150" aria-label="Ver por usuario">
-                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </button>
-              </div>
             </div>
 
             {versiones.length === 0 ? (

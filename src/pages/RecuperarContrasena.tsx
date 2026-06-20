@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/auth.service';
 
 type Fase = 'formulario' | 'enviado';
 
@@ -20,9 +21,15 @@ export default function RecuperarContrasena() {
     if (!esEmailValido(correo)) { setError('Ingresa un correo electrónico válido'); return; }
     setError('');
     setEnviando(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setEnviando(false);
-    setFase('enviado');
+    try {
+      await authService.recuperarContrasena(correo);
+    } catch {
+      // El backend siempre responde 200; cualquier error de red se ignora
+      // para no revelar si el correo existe o no.
+    } finally {
+      setEnviando(false);
+      setFase('enviado');
+    }
   };
 
   return (

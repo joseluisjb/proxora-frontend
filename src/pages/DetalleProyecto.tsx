@@ -277,29 +277,8 @@ export default function DetalleProyecto() {
               <div className={cardCls}>
                 <p className={`${infoLabelCls} mb-4`}>EQUIPO DEL PROYECTO</p>
 
-                {proyecto.directores.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-xs text-[#6B7280] m-0 mb-2.5">Director</p>
-                    {proyecto.directores.map((dir) => (
-                      <div key={dir.id} className="flex items-start gap-2.5 mb-3 last:mb-0">
-                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-bold text-[#111827] m-0 mb-0.5">{dir.nombre} {dir.apellido}</p>
-                          <p className="text-xs text-[#6B7280] m-0">{dir.correo}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {proyecto.directores.length > 0 && proyecto.integrantes.length > 0 && (
-                  <hr className="border-none border-t border-[#F3F4F6] my-3" />
-                )}
-
                 {proyecto.integrantes.length > 0 && (
-                  <div>
+                  <div className="mb-2">
                     <p className="text-xs text-[#6B7280] m-0 mb-2.5">Integrantes</p>
                     {proyecto.integrantes.map((int) => (
                       <div key={int.id} className="flex items-start gap-2.5 mb-3 last:mb-0">
@@ -307,6 +286,32 @@ export default function DetalleProyecto() {
                         <div>
                           <p className="text-sm font-bold text-[#111827] m-0 mb-0.5">{int.nombre} {int.apellido}</p>
                           <p className="text-xs text-[#6B7280] m-0">{int.correo}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {proyecto.integrantes.length > 0 && proyecto.directores.length > 0 && (
+                  <hr className="border-none border-t border-[#F3F4F6] my-3" />
+                )}
+
+                {proyecto.directores.length > 0 && (
+                  <div>
+                    <p className="text-xs text-[#6B7280] m-0 mb-2.5">{proyecto.directores.length === 1 ? 'Director' : 'Directores'}</p>
+                    {proyecto.directores.map((dir, i) => (
+                      <div key={dir.id} className="flex items-start gap-2.5 mb-3 last:mb-0">
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#B91C1C" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                        </svg>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <p className="text-sm font-bold text-[#111827] m-0">{dir.nombre} {dir.apellido}</p>
+                            {i > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#DBEAFE] text-[#1E40AF]">CO-DIRECTOR</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#6B7280] m-0">{dir.correo}</p>
                         </div>
                       </div>
                     ))}

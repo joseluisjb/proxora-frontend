@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse } from '../types/api.types';
+import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse, NivelVisibilidadResponse } from '../types/api.types';
 import { proyectosService } from '../services/proyectos.service';
 import { semestresService } from '../services/semestres.service';
 import { materiasService } from '../services/materias.service';
@@ -55,6 +55,7 @@ export default function AdminProyectos() {
   const [materias, setMaterias] = useState<MateriaResponse[]>([]);
   const [lineas, setLineas] = useState<LineaInvestigacionResponse[]>([]);
   const [estados, setEstados] = useState<EstadoProyectoResponse[]>([]);
+  const [visibilidades, setVisibilidades] = useState<NivelVisibilidadResponse[]>([]);
   const { modalProps, abrirModal } = useModalConfirmacion();
   const { mostrarAlerta } = useAlertaContext();
   const estadosMapRef = useRef<Record<string, number>>({});
@@ -69,6 +70,7 @@ export default function AdminProyectos() {
         setEstados(lista);
       })
       .catch(() => {});
+    proyectosService.listarNivelesVisibilidad().then(setVisibilidades).catch(() => {});
   }, []);
 
   const cargarProyectos = useCallback(async (f: FiltrosValores, pagActual: number) => {
@@ -135,6 +137,7 @@ export default function AdminProyectos() {
         materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
         lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
         estados={estados}
+        visibilidades={visibilidades}
       />
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
@@ -142,46 +145,91 @@ export default function AdminProyectos() {
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className={thCls} style={{ width: '30%' }}>Título del Proyecto</th>
-                <th className={thCls} style={{ width: '15%' }}>Autor Principal</th>
-                <th className={thCls} style={{ width: '20%' }}>Director</th>
-                <th className={thCls} style={{ width: '15%' }}>Materia</th>
-                <th className={thCls} style={{ width: '10%' }}>Acciones</th>
+                <th className={thCls} style={{ width: '26%' }}>Título del Proyecto</th>
+                <th className={thCls} style={{ width: '16%' }}>Integrantes</th>
+                <th className={thCls} style={{ width: '18%' }}>Director(es)</th>
+                <th className={thCls} style={{ width: '13%' }}>Materia</th>
+                <th className={thCls} style={{ width: '18%' }}>Líneas</th>
+                <th className={thCls} style={{ width: '9%' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {cargando ? (
-                <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">Cargando...</p></div></td></tr>
+                <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">Cargando...</p></div></td></tr>
               ) : error ? (
-                <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarProyectos(aplicados, pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></p></div></td></tr>
+                <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarProyectos(aplicados, pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></p></div></td></tr>
               ) : proyectos.length === 0 ? (
-                <tr><td colSpan={5}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No hay proyectos registrados</p></div></td></tr>
+                <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No hay proyectos registrados</p></div></td></tr>
               ) : (
-                proyectos.map((proy) => {
-                  const director = proy.directores[0]
-                    ? `${proy.directores[0].nombre} ${proy.directores[0].apellido}${proy.directores.length > 1 ? ` y ${proy.directores.length - 1} más` : ''}`
-                    : '—';
-                  return (
-                    <tr key={proy.id} className="hover:bg-[#F8F8F8]">
-                      <td className={tdCls}>
-                        <p className="text-[13px] font-medium text-[#111111] leading-tight">{proy.titulo}</p>
-                        <p className="text-[11px] mt-0.5">
-                          <span className={`font-medium ${proy.visibilidad === 'solo_metadatos' ? 'text-[#6B6B6B]' : 'text-[#16A34A]'}`}>
-                            {VISIBILIDAD_LABEL[proy.visibilidad]}
-                          </span>
-                        </p>
-                      </td>
-                      <td className={`${tdCls} text-[13px] text-[#3D3D3D]`}>{proy.registradoPor.nombre} {proy.registradoPor.apellido}</td>
-                      <td className={`${tdCls} text-[13px] text-[#3D3D3D]`}>{director}</td>
-                      <td className={tdCls}>
-                        <BadgeEstado variante="materia" label={proy.materia ?? 'Sin materia'} />
-                      </td>
-                      <td className={tdCls}>
-                        <FilaTablaAcciones mostrarEditar={false} onEliminar={() => handleEliminar(proy)} />
-                      </td>
-                    </tr>
-                  );
-                })
+                proyectos.map((proy) => (
+                  <tr key={proy.id} className="hover:bg-[#F8F8F8]">
+                    {/* Título */}
+                    <td className={tdCls}>
+                      <p className="text-[13px] font-medium text-[#111111] leading-tight mb-0.5">{proy.titulo}</p>
+                      <span className={`text-[11px] font-medium ${proy.visibilidad === 'solo_metadatos' ? 'text-[#6B6B6B]' : 'text-[#16A34A]'}`}>
+                        {VISIBILIDAD_LABEL[proy.visibilidad]}
+                      </span>
+                    </td>
+                    {/* Integrantes */}
+                    <td className={tdCls}>
+                      {proy.integrantes.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {proy.integrantes.map((m) => (
+                            <p key={m.id} className="text-[12px] text-[#3D3D3D] leading-snug">
+                              {m.nombre} {m.apellido}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[12px] text-[#9CA3AF]">—</span>
+                      )}
+                    </td>
+                    {/* Director(es) */}
+                    <td className={tdCls}>
+                      {proy.directores.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          <p className="text-[12px] text-[#3D3D3D] leading-snug">
+                            <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide mr-1">Dir.</span>
+                            {proy.directores[0].nombre} {proy.directores[0].apellido}
+                          </p>
+                          {proy.directores.slice(1).map((d) => (
+                            <p key={d.id} className="text-[12px] text-[#3D3D3D] leading-snug">
+                              <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide mr-1">Co.</span>
+                              {d.nombre} {d.apellido}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[12px] text-[#9CA3AF]">—</span>
+                      )}
+                    </td>
+                    {/* Materia */}
+                    <td className={tdCls}>
+                      <BadgeEstado variante="materia" label={proy.materia ?? 'Sin materia'} />
+                    </td>
+                    {/* Líneas */}
+                    <td className={tdCls}>
+                      {proy.lineas.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {proy.lineas.slice(0, 2).map((l) => (
+                            <span key={l.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280] font-medium">
+                              {l.nombre}
+                            </span>
+                          ))}
+                          {proy.lineas.length > 2 && (
+                            <span className="text-[10px] text-[#9CA3AF] font-medium">+{proy.lineas.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[12px] text-[#9CA3AF]">—</span>
+                      )}
+                    </td>
+                    {/* Acciones */}
+                    <td className={tdCls}>
+                      <FilaTablaAcciones mostrarEditar={false} onEliminar={() => handleEliminar(proy)} />
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

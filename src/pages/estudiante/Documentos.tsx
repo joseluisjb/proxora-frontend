@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { documentosService } from '../../services/estudiante/documentos.service';
-import type { ProyectoResponse } from '../../types/api.types';
+import { proyectosService } from '../../services/proyectos.service';
+import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.types';
 import Paginacion from '../../components/ui/Paginacion';
 import { useAlertaContext } from '../../context/AlertaContext';
 
@@ -17,13 +18,12 @@ const PALETA = [
   { color: '#0891B2', bg: '#E0F2FE' },
 ];
 
-const OPCIONES_ESTADO = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'en_desarrollo', label: 'En Desarrollo' },
-  { value: 'bajo_revision', label: 'Bajo Revisión' },
-  { value: 'retrasado',     label: 'Retrasado' },
-  { value: 'finalizado',    label: 'Finalizado' },
-];
+const ETIQUETA_ESTADO: Record<string, string> = {
+  en_desarrollo: 'En Desarrollo',
+  finalizado:    'Finalizado',
+  bajo_revision: 'Bajo Revisión',
+  retrasado:     'Retrasado',
+};
 
 export default function Documentos() {
   const navigate = useNavigate();
@@ -33,10 +33,15 @@ export default function Documentos() {
   const [proyectos, setProyectos] = useState<ProyectoResponse[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [estadosDisponibles, setEstadosDisponibles] = useState<EstadoProyectoResponse[]>([]);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
+
+  useEffect(() => {
+    proyectosService.listarEstados().then(setEstadosDisponibles).catch(() => {});
+  }, []);
 
   const cargar = useCallback(async () => {
     if (!usuario?.id) return;
@@ -103,8 +108,9 @@ export default function Documentos() {
             onChange={(e) => setFiltroEstado(e.target.value)}
             className="px-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] focus:outline-none focus:border-[#B91C1C] transition-colors bg-white cursor-pointer shrink-0"
           >
-            {OPCIONES_ESTADO.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+            <option value="">Todos los estados</option>
+            {estadosDisponibles.map((e) => (
+              <option key={e.id} value={e.nombre}>{ETIQUETA_ESTADO[e.nombre] ?? e.nombre}</option>
             ))}
           </select>
         </div>
@@ -192,6 +198,18 @@ export default function Documentos() {
                           {p.materia && p.semestre && <span className="inline-block w-1 h-1 rounded-full bg-[#D1D5DB]" aria-hidden="true" />}
                           {p.semestre && <span>{p.semestre}</span>}
                         </p>
+                      )}
+                      {p.lineas.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {p.lineas.slice(0, 2).map((l) => (
+                            <span key={l.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280] font-medium">
+                              {l.nombre}
+                            </span>
+                          ))}
+                          {p.lineas.length > 2 && (
+                            <span className="text-[10px] text-[#9CA3AF]">+{p.lineas.length - 2}</span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

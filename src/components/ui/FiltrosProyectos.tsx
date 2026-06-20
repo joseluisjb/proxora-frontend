@@ -1,6 +1,6 @@
 import BarraBusqueda from './BarraBusqueda';
 import BotonPrimario from './BotonPrimario';
-import type { EstadoProyectoResponse } from '../../types/api.types';
+import type { EstadoProyectoResponse, NivelVisibilidadResponse } from '../../types/api.types';
 
 interface OpcionSelect {
   id: string;
@@ -24,6 +24,7 @@ interface FiltrosProyectosProps {
   materias: OpcionSelect[];
   lineas: OpcionSelect[];
   estados: EstadoProyectoResponse[];
+  visibilidades?: NivelVisibilidadResponse[];
 }
 
 const ETIQUETA_ESTADO: Record<string, string> = {
@@ -33,12 +34,11 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   retrasado:     'Retrasado',
 };
 
-const VISIBILIDADES = [
-  { value: '',               label: 'Todos' },
-  { value: 'solo_metadatos', label: 'Solo metadatos' },
-  { value: 'lectura',        label: 'Lectura' },
-  { value: 'lectura_descarga', label: 'Lectura y descarga' },
-];
+const ETIQUETA_VISIBILIDAD: Record<string, string> = {
+  solo_metadatos:   'Solo metadatos',
+  lectura:          'Lectura',
+  lectura_descarga: 'Lectura y descarga',
+};
 
 const selectCls = "px-3 py-2 border-[1.5px] border-[#E0E0E0] rounded-lg font-sans text-[13px] text-[#111111] bg-white cursor-pointer min-w-[140px] focus:outline-none focus:border-[#C0392B]";
 const labelCls = "text-[11px] font-semibold text-[#6B6B6B] tracking-[0.05em] uppercase";
@@ -51,6 +51,7 @@ export default function FiltrosProyectos({
   materias,
   lineas,
   estados,
+  visibilidades = [],
 }: FiltrosProyectosProps) {
   return (
     <div className="flex flex-wrap gap-2.5 items-end p-4 bg-white rounded-lg border border-[#EBEBEB] mb-5 animate-fade-in">
@@ -99,7 +100,10 @@ export default function FiltrosProyectos({
       <div className="flex flex-col gap-1">
         <label className={labelCls}>Visibilidad</label>
         <select className={selectCls} value={valores.visibilidad} onChange={(e) => onChange('visibilidad', e.target.value)} aria-label="Filtrar por visibilidad">
-          {VISIBILIDADES.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+          <option value="">Todos</option>
+          {visibilidades.map((v) => (
+            <option key={v.id} value={v.nombre}>{ETIQUETA_VISIBILIDAD[v.nombre] ?? v.nombre}</option>
+          ))}
         </select>
       </div>
 

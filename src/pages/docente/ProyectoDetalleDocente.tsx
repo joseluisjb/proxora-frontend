@@ -4,8 +4,6 @@ import { misProyectosService } from '../../services/estudiante/misProyectos.serv
 import { proyectosService } from '../../services/proyectos.service';
 import type { ProyectoDetalleResponse } from '../../types/api.types';
 import AvatarIniciales from '../../components/ui/AvatarIniciales';
-import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
-import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
 
 type EstadoProyecto = ProyectoDetalleResponse['estado'];
@@ -19,15 +17,6 @@ const ESTADO_CONFIG: Record<EstadoProyecto, { label: string; clases: string }> =
 
 function formatearFecha(iso: string): string {
   return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso));
-}
-
-function formatearFechaHora(iso: string): string {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) +
-    ' · ' +
-    d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-  );
 }
 
 function formatearTamano(bytes: number | null): string {
@@ -65,12 +54,11 @@ const cardCls = "bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-6";
 const labelCls = "text-[11px] font-bold text-[#9CA3AF] uppercase tracking-[0.07em] mb-1.5";
 const valorCls = "text-[14px] text-[#111827] font-medium";
 
-export default function ProyectoDetalleEstudiante() {
+export default function ProyectoDetalleDocente() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
   const { mostrarAlerta } = useAlertaContext();
-  const { modalProps, abrirModal } = useModalConfirmacion();
+
   const [proyecto, setProyecto] = useState<ProyectoDetalleResponse | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,25 +81,6 @@ export default function ProyectoDetalleEstudiante() {
   }, [id, mostrarAlerta]);
 
   useEffect(() => { cargar(); }, [cargar]);
-
-  const handleEliminar = () => {
-    if (!proyecto) return;
-    abrirModal({
-      titulo: 'Eliminar proyecto',
-      mensaje: `¿Estás seguro de que deseas eliminar "${proyecto.titulo}"? Esta acción no se puede deshacer.`,
-      labelConfirmar: 'Eliminar',
-      variante: 'peligro',
-      onConfirmar: async () => {
-        try {
-          await misProyectosService.eliminar(proyecto.id);
-          mostrarAlerta({ mensaje: `Proyecto eliminado correctamente.`, variante: 'exito' });
-          navigate('/estudiante/mis-proyectos');
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo eliminar el proyecto. Intenta de nuevo.', variante: 'error' });
-        }
-      },
-    });
-  };
 
   const handleDescargar = async (idProyecto: string, idVersion: string) => {
     if (descargando.has(idVersion)) return;
@@ -140,10 +109,10 @@ export default function ProyectoDetalleEstudiante() {
         <p className="text-[14px] text-[#6B7280]">{error ?? 'Proyecto no encontrado.'}</p>
         <button
           type="button"
-          onClick={() => navigate('/estudiante/mis-proyectos')}
+          onClick={() => navigate('/docente/lista-proyectos')}
           className="px-4 py-2 text-[13px] font-semibold text-white bg-[#B91C1C] rounded-lg hover:bg-[#991B1B] transition-colors duration-150"
         >
-          Volver a Mis Proyectos
+          Volver a Lista de Proyectos
         </button>
       </div>
     );
@@ -153,42 +122,18 @@ export default function ProyectoDetalleEstudiante() {
 
   return (
     <div className="animate-fade-in">
-      <ModalConfirmacion {...modalProps} />
-
-      {/* Breadcrumb + acciones */}
-      <div className="flex items-center justify-between mb-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center mb-5">
         <button
           type="button"
-          onClick={() => navigate('/estudiante/mis-proyectos')}
+          onClick={() => navigate('/docente/lista-proyectos')}
           className="flex items-center gap-1.5 text-[13px] text-[#9CA3AF] hover:text-[#B91C1C] transition-colors duration-150 group"
         >
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true" className="group-hover:-translate-x-0.5 transition-transform duration-150">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Mis Proyectos
+          Lista de Proyectos
         </button>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate(`/estudiante/mis-proyectos/${id}/editar`)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#374151] border border-[#D1D5DB] rounded-lg font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-[#F9FAFB] hover:border-[#B91C1C] hover:text-[#B91C1C]"
-          >
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Editar proyecto
-          </button>
-          <button
-            type="button"
-            onClick={handleEliminar}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#B91C1C] border border-[#FECACA] rounded-lg font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-[#FEF2F2] hover:border-[#B91C1C]"
-          >
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Eliminar
-          </button>
-        </div>
       </div>
 
       <div className="grid grid-cols-[65fr_35fr] gap-5 items-start max-md:grid-cols-1 animate-slide-up">
@@ -262,7 +207,7 @@ export default function ProyectoDetalleEstudiante() {
                           <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#DCFCE7] text-[#166534]">MÁS RECIENTE</span>
                         </div>
                         <p className="text-[11px] text-[#9CA3AF] m-0">
-                          {primera.tipoDocumento ?? 'Documento'} · {formatearTamano(primera.tamanoBytes)} · {formatearFechaHora(primera.creadoEn)}
+                          {primera.tipoDocumento ?? 'Documento'} · {formatearTamano(primera.tamanoBytes)} · {formatearFecha(primera.creadoEn)}
                         </p>
                         {primera.subidoPor && (
                           <p className="text-[11px] text-[#9CA3AF] m-0 mt-0.5">
@@ -302,7 +247,7 @@ export default function ProyectoDetalleEstudiante() {
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
-                        Historial de versiones ({resto.length})
+                        {historialAbierto ? 'Ocultar' : 'Ver'} historial de versiones ({resto.length})
                       </button>
                       <div
                         className={`overflow-hidden transition-all duration-300 ease-in-out ${historialAbierto ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
@@ -315,7 +260,7 @@ export default function ProyectoDetalleEstudiante() {
                                 <div className="min-w-0">
                                   <p className="text-[13px] font-medium text-[#374151] m-0 mb-0.5 truncate">{v.etiquetaVersion}</p>
                                   <p className="text-[11px] text-[#9CA3AF] m-0">
-                                    {v.tipoDocumento ?? 'Documento'} · {formatearTamano(v.tamanoBytes)} · {formatearFechaHora(v.creadoEn)}
+                                    {v.tipoDocumento ?? 'Documento'} · {formatearTamano(v.tamanoBytes)} · {formatearFecha(v.creadoEn)}
                                   </p>
                                   {v.subidoPor && (
                                     <p className="text-[11px] text-[#9CA3AF] m-0 mt-0.5">
@@ -357,7 +302,6 @@ export default function ProyectoDetalleEstudiante() {
           {/* Meta información */}
           <div className={cardCls}>
             <h2 className="text-[13px] font-bold text-[#111827] mb-4">Información del Proyecto</h2>
-
             <div className="mb-3">
               <p className={labelCls}>SEMESTRE</p>
               <p className={valorCls}>{proyecto.semestre ?? '—'}</p>
@@ -367,7 +311,6 @@ export default function ProyectoDetalleEstudiante() {
               <p className={labelCls}>MATERIA</p>
               <p className={valorCls}>{proyecto.materia ?? '—'}</p>
             </div>
-
             {proyecto.lineas.length > 0 && (
               <>
                 <div className="h-px bg-[#F3F4F6] my-3" />
