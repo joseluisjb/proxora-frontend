@@ -12,6 +12,7 @@ import Paginacion from '../../components/ui/Paginacion';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 type FiltroRol = 'todos' | 'docente' | 'estudiante';
 
@@ -51,9 +52,9 @@ export default function AdminUsuarios() {
       setUsuarios(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch {
+    } catch (err) {
       setError('Error al cargar los datos.');
-      mostrarAlerta({ mensaje: 'Error al cargar los usuarios. Intenta de nuevo.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar los usuarios. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setCargando(false);
     }
@@ -82,8 +83,8 @@ export default function AdminUsuarios() {
           await usuariosService.convertirDocente(usuario.id);
           mostrarAlerta({ mensaje: `${usuario.nombre} ${usuario.apellido} ahora es Docente.`, variante: 'exito' });
           await cargarUsuarios(filtroRol, busquedaDebounced, pagina);
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo cambiar el rol del usuario. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo cambiar el rol del usuario. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });
@@ -100,8 +101,8 @@ export default function AdminUsuarios() {
           await usuariosService.convertirEstudiante(usuario.id);
           mostrarAlerta({ mensaje: `Rol de docente revocado a ${usuario.nombre} ${usuario.apellido}.`, variante: 'exito' });
           await cargarUsuarios(filtroRol, busquedaDebounced, pagina);
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo revocar el rol de docente. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo revocar el rol de docente. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });
@@ -118,8 +119,8 @@ export default function AdminUsuarios() {
           await usuariosService.desactivar(usuario.id);
           mostrarAlerta({ mensaje: `Cuenta de ${usuario.nombre} ${usuario.apellido} desactivada.`, variante: 'exito' });
           await cargarUsuarios(filtroRol, busquedaDebounced, pagina);
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo desactivar el usuario. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo desactivar el usuario. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });

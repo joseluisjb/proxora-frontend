@@ -7,6 +7,7 @@ import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.t
 import Paginacion from '../../components/ui/Paginacion';
 import Desplegable from '../../components/ui/Desplegable';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 const PAGINA_SIZE = 8;
 
@@ -51,9 +52,9 @@ export default function Documentos() {
     try {
       const result = await documentosService.listarMisProyectos(usuario.id, { size: 100 });
       setProyectos(result.content);
-    } catch {
+    } catch (err) {
       setError('Error al cargar tus proyectos. Intenta de nuevo.');
-      mostrarAlerta({ mensaje: 'Error al cargar tus proyectos. Intenta de nuevo.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar tus proyectos. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setCargando(false);
     }

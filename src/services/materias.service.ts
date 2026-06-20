@@ -16,7 +16,4 @@ export const materiasService = {
 
   eliminar: (id: string) =>
     api.delete(`/materias/${id}`).then(() => undefined),
-
-  listarActivas: (params: { size?: number }) =>
-    api.get<PaginatedResponse<MateriaResponse>>('/materias/activas', { params }).then((r) => r.data),
 }

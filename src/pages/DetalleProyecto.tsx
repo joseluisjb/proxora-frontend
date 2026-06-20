@@ -6,21 +6,16 @@ import NavbarPublica from '../components/layout/NavbarPublica';
 import AvatarIniciales from '../components/ui/AvatarIniciales';
 import Alerta from '../components/ui/Alerta';
 import { useAlerta } from '../hooks/useAlerta';
+import { extraerMensajeError } from '../utils/errores';
+import { VISIBILIDAD_PUBLICA_CONFIG as VISIBILIDAD_CONFIG } from '../constants/visibilidad';
 
 type EstadoProyecto = ProyectoResponse['estado'];
-type NivelVisibilidad = ProyectoResponse['visibilidad'];
 
 const ESTADO_CONFIG: Record<EstadoProyecto, { label: string; clases: string }> = {
   en_desarrollo: { label: 'En desarrollo', clases: 'bg-[#FEF9C3] text-[#854D0E]' },
   finalizado:    { label: 'Finalizado',    clases: 'bg-[#DCFCE7] text-[#166534]' },
   bajo_revision: { label: 'Bajo revisión', clases: 'bg-[#DBEAFE] text-[#1E40AF]' },
   retrasado:     { label: 'Retrasado',     clases: 'bg-[#FEE2E2] text-[#991B1B]' },
-};
-
-const VISIBILIDAD_CONFIG: Record<NivelVisibilidad, { label: string; clases: string }> = {
-  solo_metadatos:   { label: 'No disponible para ver',  clases: 'bg-[#FEE2E2] text-[#991B1B]' },
-  lectura:          { label: 'Solo lectura',            clases: 'bg-[#DBEAFE] text-[#1E40AF]' },
-  lectura_descarga: { label: 'Lectura y descarga',      clases: 'bg-[#DCFCE7] text-[#166534]' },
 };
 
 function formatearFecha(iso: string): string {
@@ -85,8 +80,8 @@ export default function DetalleProyecto() {
     setDescargando((prev) => new Set([...prev, idVersion]));
     try {
       await proyectosService.descargarVersion(idProyecto, idVersion);
-    } catch {
-      mostrarAlerta({ mensaje: 'No se pudo descargar el archivo. Intenta de nuevo.', variante: 'error' });
+    } catch (err) {
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo descargar el archivo. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setDescargando((prev) => { const s = new Set(prev); s.delete(idVersion); return s; });
     }
@@ -105,7 +100,7 @@ export default function DetalleProyecto() {
           setNoEncontrado(true);
         } else {
           setErrorProyecto('No se pudo cargar el proyecto. Intenta de nuevo.');
-          mostrarAlerta({ mensaje: 'No se pudo cargar el proyecto. Intenta de nuevo.', variante: 'error' });
+          mostrarAlerta({ mensaje: extraerMensajeError(resProyecto.reason, 'No se pudo cargar el proyecto. Intenta de nuevo.'), variante: 'error' });
         }
       }
       if (resVersiones.status === 'fulfilled') {
@@ -167,7 +162,7 @@ export default function DetalleProyecto() {
         {cargando || !proyecto ? (
           <SkeletonDetalle />
         ) : (
-          <div className="grid grid-cols-[65fr_35fr] gap-6 items-start max-md:grid-cols-1 animate-slide-up">
+          <div className="grid grid-cols-[minmax(0,65fr)_minmax(0,35fr)] gap-6 items-start max-md:grid-cols-1 animate-slide-up">
             <div className="flex flex-col gap-4 min-w-0">
               <div className={cardCls}>
                 <span className={`inline-block text-xs font-semibold px-2.5 py-[3px] rounded-full mb-4 ${ESTADO_CONFIG[proyecto.estado].clases}`}>
@@ -190,7 +185,7 @@ export default function DetalleProyecto() {
                   </svg>
                   <h2 className="text-lg font-bold text-[#111827] m-0">Resumen del Proyecto</h2>
                 </div>
-                <p className="text-[15px] text-[#374151] leading-[1.7] m-0 break-words">{proyecto.resumen}</p>
+                <p className="text-[15px] text-[#374151] leading-[1.7] m-0 [overflow-wrap:anywhere]">{proyecto.resumen}</p>
               </div>
 
               {proyecto.visibilidad === 'solo_metadatos' ? (
@@ -249,7 +244,7 @@ export default function DetalleProyecto() {
               )}
             </div>
 
-            <div className="flex flex-col gap-4 max-md:order-first">
+            <div className="flex flex-col gap-4 max-md:order-first min-w-0">
               <div className={cardCls}>
                 <div className="py-3 first:pt-0 last:pb-0">
                   <p className={infoLabelCls}>MATERIA</p>

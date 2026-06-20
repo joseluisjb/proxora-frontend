@@ -11,11 +11,6 @@ export const misProyectosService = {
       })
       .then((r) => r.data),
 
-  obtenerPorId: (id: string) =>
-    api
-      .get<ProyectoResponse>(`/proyectos/${id}`)
-      .then((r) => r.data),
-
   obtenerDetalle: (id: string) =>
     api
       .get<ProyectoDetalleResponse>(`/proyectos/${id}/detalle`)

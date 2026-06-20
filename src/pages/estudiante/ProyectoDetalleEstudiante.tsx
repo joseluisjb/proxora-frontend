@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { misProyectosService } from '../../services/estudiante/misProyectos.service';
 import { proyectosService } from '../../services/proyectos.service';
 import type { ProyectoDetalleResponse } from '../../types/api.types';
+import { VISIBILIDAD_INTERNA_CONFIG as VISIBILIDAD_CONFIG } from '../../constants/visibilidad';
 import AvatarIniciales from '../../components/ui/AvatarIniciales';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 type EstadoProyecto = ProyectoDetalleResponse['estado'];
 
@@ -84,9 +86,9 @@ export default function ProyectoDetalleEstudiante() {
     try {
       const data = await misProyectosService.obtenerDetalle(id);
       setProyecto(data);
-    } catch {
+    } catch (err) {
       setError('No se pudo cargar el detalle del proyecto.');
-      mostrarAlerta({ mensaje: 'No se pudo cargar el detalle del proyecto.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo cargar el detalle del proyecto.'), variante: 'error' });
     } finally {
       setCargando(false);
     }
@@ -106,8 +108,8 @@ export default function ProyectoDetalleEstudiante() {
           await misProyectosService.eliminar(proyecto.id);
           mostrarAlerta({ mensaje: `Proyecto eliminado correctamente.`, variante: 'exito' });
           navigate('/estudiante/mis-proyectos');
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo eliminar el proyecto. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo eliminar el proyecto. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });
@@ -118,8 +120,8 @@ export default function ProyectoDetalleEstudiante() {
     setDescargando((prev) => new Set([...prev, idVersion]));
     try {
       await proyectosService.descargarVersion(idProyecto, idVersion);
-    } catch {
-      mostrarAlerta({ mensaje: 'No se pudo descargar el archivo. Intenta de nuevo.', variante: 'error' });
+    } catch (err) {
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo descargar el archivo. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setDescargando((prev) => { const s = new Set(prev); s.delete(idVersion); return s; });
     }
@@ -191,16 +193,21 @@ export default function ProyectoDetalleEstudiante() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[65fr_35fr] gap-5 items-start max-md:grid-cols-1 animate-slide-up">
+      <div className="grid grid-cols-[minmax(0,65fr)_minmax(0,35fr)] gap-5 items-start max-md:grid-cols-1 animate-slide-up">
 
         {/* Columna principal */}
         <div className="flex flex-col gap-4 min-w-0">
 
           {/* Encabezado */}
           <div className={cardCls}>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide mb-3 ${estadoCfg.clases}`}>
-              {estadoCfg.label}
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap mb-3">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${estadoCfg.clases}`}>
+                {estadoCfg.label}
+              </span>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${VISIBILIDAD_CONFIG[proyecto.visibilidad].clases}`}>
+                {VISIBILIDAD_CONFIG[proyecto.visibilidad].label}
+              </span>
+            </div>
             <h1 className="text-[24px] font-bold text-[#111827] leading-tight mb-3">
               {proyecto.titulo}
             </h1>
@@ -229,7 +236,7 @@ export default function ProyectoDetalleEstudiante() {
               </svg>
               <h2 className="text-[16px] font-bold text-[#111827] m-0">Resumen</h2>
             </div>
-            <p className="text-[14px] text-[#374151] leading-relaxed m-0">{proyecto.resumen}</p>
+            <p className="text-[14px] text-[#374151] leading-relaxed m-0 [overflow-wrap:anywhere]">{proyecto.resumen}</p>
           </div>
 
           {/* Documento */}
@@ -352,7 +359,7 @@ export default function ProyectoDetalleEstudiante() {
         </div>
 
         {/* Columna lateral */}
-        <div className="flex flex-col gap-4 max-md:order-first">
+        <div className="flex flex-col gap-4 max-md:order-first min-w-0">
 
           {/* Meta información */}
           <div className={cardCls}>

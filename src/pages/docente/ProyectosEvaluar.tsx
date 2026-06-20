@@ -4,9 +4,11 @@ import { useAuth } from '../../context/AuthContext'
 import { evaluacionesDocenteService } from '../../services/docente/evaluaciones.service'
 import { proyectosService } from '../../services/proyectos.service'
 import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.types'
+import { VISIBILIDAD_INTERNA_CONFIG as VISIBILIDAD_CONFIG } from '../../constants/visibilidad'
 import Paginacion from '../../components/ui/Paginacion'
 import Desplegable from '../../components/ui/Desplegable'
 import { useAlertaContext } from '../../context/AlertaContext'
+import { extraerMensajeError } from '../../utils/errores'
 
 const PAGINA_SIZE = 8
 
@@ -63,9 +65,9 @@ export default function ProyectosEvaluar() {
         ...todos.content.filter((p) => !pendientesSet.has(p.id)),
       ]
       setProyectos(ordenados)
-    } catch {
+    } catch (err) {
       setError('Error al cargar los proyectos asignados. Intenta de nuevo.')
-      mostrarAlerta({ mensaje: 'Error al cargar los proyectos asignados.', variante: 'error' })
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar los proyectos asignados.'), variante: 'error' })
     } finally {
       setCargando(false)
     }
@@ -221,6 +223,9 @@ export default function ProyectosEvaluar() {
                             Evaluado
                           </span>
                         )}
+                        <span className={`shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] px-2 py-0.5 rounded-md ${VISIBILIDAD_CONFIG[p.visibilidad].clases}`}>
+                          {VISIBILIDAD_CONFIG[p.visibilidad].label}
+                        </span>
                       </div>
                       {(p.materia || p.semestre) && (
                         <p className="text-[12px] text-[#9CA3AF] flex items-center gap-1.5 flex-wrap">

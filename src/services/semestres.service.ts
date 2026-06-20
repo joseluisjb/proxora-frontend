@@ -16,7 +16,4 @@ export const semestresService = {
 
   eliminar: (id: string) =>
     api.delete(`/semestres/${id}`).then(() => undefined),
-
-  listarActivos: (params: { size?: number }) =>
-    api.get<PaginatedResponse<SemestreResponse>>('/semestres/activos', { params }).then((r) => r.data),
 }
