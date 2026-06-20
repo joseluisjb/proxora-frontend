@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { ProyectoResponse } from '../../types/api.types';
+import { VISIBILIDAD_PUBLICA_CONFIG as VISIBILIDAD_CONFIG } from '../../constants/visibilidad';
 
 export interface TarjetaProyectoProps {
   proyecto: ProyectoResponse
@@ -11,19 +12,12 @@ export interface TarjetaProyectoProps {
 }
 
 type EstadoProyecto = ProyectoResponse['estado'];
-type NivelVisibilidad = ProyectoResponse['visibilidad'];
 
 const ESTADO_CONFIG: Record<EstadoProyecto, { label: string; clases: string }> = {
   en_desarrollo: { label: 'En desarrollo', clases: 'bg-[#FEF9C3] text-[#854D0E]' },
   finalizado:    { label: 'Finalizado',    clases: 'bg-[#DCFCE7] text-[#166534]' },
   bajo_revision: { label: 'Bajo revisión', clases: 'bg-[#DBEAFE] text-[#1E40AF]' },
   retrasado:     { label: 'Retrasado',     clases: 'bg-[#FEE2E2] text-[#991B1B]' },
-};
-
-const VISIBILIDAD_CONFIG: Record<NivelVisibilidad, { label: string; clases: string }> = {
-  solo_metadatos:   { label: 'No disponible para ver',  clases: 'bg-[#FEE2E2] text-[#991B1B]' },
-  lectura:          { label: 'Solo lectura',            clases: 'bg-[#DBEAFE] text-[#1E40AF]' },
-  lectura_descarga: { label: 'Lectura y descarga',      clases: 'bg-[#DCFCE7] text-[#166534]' },
 };
 
 function formatearFechaCorta(iso: string): string {

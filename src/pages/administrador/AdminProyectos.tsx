@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ProyectoResponse, NivelVisibilidad, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse, NivelVisibilidadResponse } from '../../types/api.types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { ProyectoResponse, SemestreResponse, MateriaResponse, LineaInvestigacionResponse, EstadoProyectoResponse, NivelVisibilidadResponse } from '../../types/api.types';
 import { proyectosService } from '../../services/proyectos.service';
+import { VISIBILIDAD_ADMIN_LABEL as VISIBILIDAD_LABEL } from '../../constants/visibilidad';
 import { semestresService } from '../../services/semestres.service';
 import { materiasService } from '../../services/materias.service';
 import { lineasService } from '../../services/lineas.service';
@@ -12,44 +13,23 @@ import Paginacion from '../../components/ui/Paginacion';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
+import { filtrarProyectos, type FiltrosProyectosValores } from '../../utils/filtrarProyectos';
 
-interface FiltrosValores {
-  busqueda: string;
-  semestre: string;
-  materia: string;
-  lineaInvestigacion: string;
-  estado: string;
-  visibilidad: string;
-}
+type FiltrosValores = FiltrosProyectosValores;
 
 const REGISTROS_POR_PAGINA = 10;
-
-const VISIBILIDAD_LABEL: Record<NivelVisibilidad, string> = {
-  solo_metadatos:   'Privado',
-  lectura:          'Público',
-  lectura_descarga: 'Público',
-};
-
-type ModoConsulta = 'todos' | 'busqueda' | 'semestre' | 'materia' | 'estado';
-
-function resolverModo(f: FiltrosValores): ModoConsulta {
-  if (f.busqueda.trim()) return 'busqueda';
-  if (f.semestre) return 'semestre';
-  if (f.materia) return 'materia';
-  if (f.estado) return 'estado';
-  return 'todos';
-}
+const LOTE_SIZE = 1000;
 
 export default function AdminProyectos() {
   const [pagina, setPagina] = useState(1);
   const [filtros, setFiltros] = useState<FiltrosValores>({ busqueda: '', semestre: '', materia: '', lineaInvestigacion: '', estado: '', visibilidad: '' });
   const [aplicados, setAplicados] = useState<FiltrosValores>(filtros);
+  const [aplicandoFiltro, setAplicandoFiltro] = useState(false);
 
-  const [proyectos, setProyectos] = useState<ProyectoResponse[]>([]);
+  const [todosProyectos, setTodosProyectos] = useState<ProyectoResponse[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [totalPaginas, setTotalPaginas] = useState(1);
-  const [totalElementos, setTotalElementos] = useState(0);
 
   const [semestres, setSemestres] = useState<SemestreResponse[]>([]);
   const [materias, setMaterias] = useState<MateriaResponse[]>([]);
@@ -58,46 +38,39 @@ export default function AdminProyectos() {
   const [visibilidades, setVisibilidades] = useState<NivelVisibilidadResponse[]>([]);
   const { modalProps, abrirModal } = useModalConfirmacion();
   const { mostrarAlerta } = useAlertaContext();
-  const estadosMapRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     semestresService.listar({ size: 100 }).then((r) => setSemestres(r.content)).catch(() => {});
     materiasService.listar({ size: 100 }).then((r) => setMaterias(r.content)).catch(() => {});
     lineasService.listar({ size: 100 }).then((r) => setLineas(r.content)).catch(() => {});
-    proyectosService.listarEstados()
-      .then((lista) => {
-        estadosMapRef.current = Object.fromEntries(lista.map((e) => [e.nombre, e.id]));
-        setEstados(lista);
-      })
-      .catch(() => {});
+    proyectosService.listarEstados().then(setEstados).catch(() => {});
     proyectosService.listarNivelesVisibilidad().then(setVisibilidades).catch(() => {});
   }, []);
 
-  const cargarProyectos = useCallback(async (f: FiltrosValores, pagActual: number) => {
+  const cargarProyectos = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const params = { page: pagActual - 1, size: REGISTROS_POR_PAGINA };
-      const modo = resolverModo(f);
-      let resultado;
-      if (modo === 'busqueda') resultado = await proyectosService.buscar(f.busqueda.trim(), params);
-      else if (modo === 'semestre') resultado = await proyectosService.listarPorSemestre(f.semestre, params);
-      else if (modo === 'materia') resultado = await proyectosService.listarPorMateria(f.materia, params);
-      else if (modo === 'estado') {
-        resultado = await proyectosService.listarPorEstado(estadosMapRef.current[f.estado] ?? 1, params);
-      } else resultado = await proyectosService.listar({ ...params, sort: 'creadoEn,desc' });
-      setProyectos(resultado.content);
-      setTotalPaginas(resultado.totalPages || 1);
-      setTotalElementos(resultado.totalElements);
-    } catch {
+      const resultado = await proyectosService.listar({ size: LOTE_SIZE, sort: 'creadoEn,desc' });
+      setTodosProyectos(resultado.content);
+    } catch (err) {
       setError('Error al cargar los datos.');
-      mostrarAlerta({ mensaje: 'Error al cargar los proyectos. Intenta de nuevo.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar los proyectos. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setCargando(false);
     }
   }, [mostrarAlerta]);
 
-  useEffect(() => { cargarProyectos(aplicados, pagina); }, [aplicados, pagina, cargarProyectos]);
+  useEffect(() => { cargarProyectos(); }, [cargarProyectos]);
+
+  const proyectosFiltrados = useMemo(() => filtrarProyectos(todosProyectos, aplicados), [todosProyectos, aplicados]);
+  const totalElementos = proyectosFiltrados.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalElementos / REGISTROS_POR_PAGINA));
+  const paginaSegura = Math.min(pagina - 1, totalPaginas - 1);
+  const proyectos = useMemo(
+    () => proyectosFiltrados.slice(paginaSegura * REGISTROS_POR_PAGINA, paginaSegura * REGISTROS_POR_PAGINA + REGISTROS_POR_PAGINA),
+    [proyectosFiltrados, paginaSegura],
+  );
 
   const handleEliminar = (proyecto: ProyectoResponse) => {
     abrirModal({
@@ -109,9 +82,9 @@ export default function AdminProyectos() {
         try {
           await proyectosService.eliminar(proyecto.id);
           mostrarAlerta({ mensaje: `Proyecto "${proyecto.titulo}" eliminado correctamente.`, variante: 'exito' });
-          await cargarProyectos(aplicados, pagina);
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo eliminar el proyecto. Intenta de nuevo.', variante: 'error' });
+          await cargarProyectos();
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo eliminar el proyecto. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });
@@ -132,12 +105,18 @@ export default function AdminProyectos() {
       <FiltrosProyectos
         valores={filtros}
         onChange={(campo, valor) => setFiltros((prev) => ({ ...prev, [campo]: valor }))}
-        onFiltrar={() => { setAplicados(filtros); setPagina(1); }}
+        onFiltrar={() => {
+          setAplicandoFiltro(true);
+          setAplicados(filtros);
+          setPagina(1);
+          setTimeout(() => setAplicandoFiltro(false), 350);
+        }}
         semestres={semestres.map((s) => ({ id: s.id, nombre: s.nombre }))}
         materias={materias.map((m) => ({ id: m.id, nombre: m.nombre }))}
         lineas={lineas.map((l) => ({ id: l.id, nombre: l.nombre }))}
         estados={estados}
         visibilidades={visibilidades}
+        aplicandoFiltro={aplicandoFiltro}
       />
 
       <div className="bg-white rounded-lg shadow-sm border border-[#EBEBEB] animate-fade-in">
@@ -157,7 +136,7 @@ export default function AdminProyectos() {
               {cargando ? (
                 <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">Cargando...</p></div></td></tr>
               ) : error ? (
-                <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No se pudo cargar los datos.{' '}<button onClick={() => cargarProyectos(aplicados, pagina)} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></p></div></td></tr>
+                <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No se pudo cargar los datos.{' '}<button onClick={cargarProyectos} className="text-[#EF4444] font-semibold cursor-pointer bg-transparent border-none">Reintentar</button></p></div></td></tr>
               ) : proyectos.length === 0 ? (
                 <tr><td colSpan={6}><div className="text-center py-12 px-5 text-[#6B6B6B]"><p className="text-sm">No hay proyectos registrados</p></div></td></tr>
               ) : (
@@ -235,7 +214,7 @@ export default function AdminProyectos() {
           </table>
         </div>
 
-        <Paginacion paginaActual={pagina} totalPaginas={Math.max(totalPaginas, 1)} totalRegistros={totalElementos} registrosPorPagina={REGISTROS_POR_PAGINA} labelEntidad="proyectos" onCambiarPagina={setPagina} />
+        <Paginacion paginaActual={paginaSegura + 1} totalPaginas={totalPaginas} totalRegistros={totalElementos} registrosPorPagina={REGISTROS_POR_PAGINA} labelEntidad="proyectos" onCambiarPagina={setPagina} />
       </div>
     </div>
   );

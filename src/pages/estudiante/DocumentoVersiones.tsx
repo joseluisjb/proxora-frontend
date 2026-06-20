@@ -8,6 +8,7 @@ import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import Desplegable from '../../components/ui/Desplegable';
 import type { ProyectoResponse, VersionDocumentoResponse } from '../../types/api.types';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 const TIPOS_DOCUMENTO = [
   { id: 1, nombre: 'Propuesta' },
@@ -73,9 +74,9 @@ export default function DocumentoVersiones() {
       ]);
       setProyecto(proy);
       setVersiones(vers);
-    } catch {
+    } catch (err) {
       setError('No se pudo cargar la información del proyecto.');
-      mostrarAlerta({ mensaje: 'No se pudo cargar la información del proyecto.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo cargar la información del proyecto.'), variante: 'error' });
     } finally {
       setCargando(false);
     }
@@ -95,8 +96,8 @@ export default function DocumentoVersiones() {
     setDescargando((prev) => new Set([...prev, idVersion]));
     try {
       await proyectosService.descargarVersion(idProyecto, idVersion);
-    } catch {
-      mostrarAlerta({ mensaje: 'No se pudo descargar el archivo. Intenta de nuevo.', variante: 'error' });
+    } catch (err) {
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo descargar el archivo. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setDescargando((prev) => { const s = new Set(prev); s.delete(idVersion); return s; });
     }
@@ -142,8 +143,8 @@ export default function DocumentoVersiones() {
       setEtiqueta('');
       setArchivo(null);
       mostrarAlerta({ mensaje: '¡Versión subida exitosamente!', variante: 'exito' });
-    } catch {
-      mostrarAlerta({ mensaje: 'Error al subir la versión. Intenta de nuevo.', variante: 'error' });
+    } catch (err) {
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al subir la versión. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setEnviando(false);
     }

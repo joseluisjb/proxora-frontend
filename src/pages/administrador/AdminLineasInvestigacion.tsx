@@ -9,6 +9,7 @@ import BotonPrimario from '../../components/ui/BotonPrimario';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 const REGISTROS_POR_PAGINA = 10;
 
@@ -49,9 +50,9 @@ export default function AdminLineasInvestigacion() {
       setLineas(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch {
+    } catch (err) {
       setError('Error al cargar los datos. Intenta de nuevo.');
-      mostrarAlerta({ mensaje: 'Error al cargar las líneas de investigación. Intenta de nuevo.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar las líneas de investigación. Intenta de nuevo.'), variante: 'error' });
     }
     finally { setCargando(false); }
   }, [mostrarAlerta]);
@@ -69,8 +70,8 @@ export default function AdminLineasInvestigacion() {
           await lineasService.eliminar(linea.id);
           mostrarAlerta({ mensaje: `Línea "${linea.nombre}" eliminada correctamente.`, variante: 'exito' });
           await cargarLineas(pagina);
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo eliminar la línea de investigación. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo eliminar la línea de investigación. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });

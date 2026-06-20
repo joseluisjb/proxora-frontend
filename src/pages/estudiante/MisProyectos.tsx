@@ -4,11 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 import { misProyectosService } from '../../services/estudiante/misProyectos.service';
 import { proyectosService } from '../../services/proyectos.service';
 import type { ProyectoResponse, EstadoProyectoResponse } from '../../types/api.types';
+import { VISIBILIDAD_INTERNA_CONFIG as VISIBILIDAD_CONFIG } from '../../constants/visibilidad';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import Paginacion from '../../components/ui/Paginacion';
 import Desplegable from '../../components/ui/Desplegable';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 const PAGINA_SIZE = 6;
 
@@ -104,6 +106,7 @@ function TarjetaProyecto({
   onEliminar: () => void;
 }) {
   const cfg = ESTADO_CONFIG[proyecto.estado];
+  const visCfg = VISIBILIDAD_CONFIG[proyecto.visibilidad];
 
   return (
     <div
@@ -115,9 +118,14 @@ function TarjetaProyecto({
       aria-label={`Ver detalle de ${proyecto.titulo}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${cfg.clases}`}>
-          {cfg.label}
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${cfg.clases}`}>
+            {cfg.label}
+          </span>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${visCfg.clases}`}>
+            {visCfg.label}
+          </span>
+        </div>
         <div onClick={(e) => e.stopPropagation()}>
           <MenuTarjeta onEditar={onEditar} onEliminar={onEliminar} />
         </div>
@@ -209,9 +217,9 @@ export default function MisProyectos() {
     try {
       const result = await misProyectosService.listarMisProyectos(usuario.id, { size: 100 });
       setProyectos(result.content);
-    } catch {
+    } catch (err) {
       setError('Error al cargar tus proyectos. Intenta de nuevo.');
-      mostrarAlerta({ mensaje: 'Error al cargar tus proyectos. Intenta de nuevo.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar tus proyectos. Intenta de nuevo.'), variante: 'error' });
     } finally {
       setCargando(false);
     }
@@ -236,8 +244,8 @@ export default function MisProyectos() {
           await misProyectosService.eliminar(proyecto.id);
           setProyectos((prev) => prev.filter((p) => p.id !== proyecto.id));
           mostrarAlerta({ mensaje: `Proyecto "${proyecto.titulo}" eliminado correctamente.`, variante: 'exito' });
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo eliminar el proyecto. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo eliminar el proyecto. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });

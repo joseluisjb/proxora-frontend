@@ -26,7 +26,4 @@ export const usuariosService = {
 
   desactivar: (id: string) =>
     api.patch(`/usuarios/${id}/desactivar`).then(() => undefined),
-
-  activar: (id: string) =>
-    api.patch(`/usuarios/${id}/activar`).then(() => undefined),
 }

@@ -9,6 +9,7 @@ import Paginacion from '../../components/ui/Paginacion';
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion';
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion';
 import { useAlertaContext } from '../../context/AlertaContext';
+import { extraerMensajeError } from '../../utils/errores';
 
 const REGISTROS_POR_PAGINA = 10;
 
@@ -35,9 +36,9 @@ export default function AdminSemestres() {
       setSemestres(resultado.content);
       setTotalPaginas(resultado.totalPages || 1);
       setTotalElementos(resultado.totalElements);
-    } catch {
+    } catch (err) {
       setError('Error al cargar los datos.');
-      mostrarAlerta({ mensaje: 'Error al cargar los semestres. Intenta de nuevo.', variante: 'error' });
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar los semestres. Intenta de nuevo.'), variante: 'error' });
     }
     finally { setCargando(false); }
   }, [mostrarAlerta]);
@@ -55,8 +56,8 @@ export default function AdminSemestres() {
           await semestresService.eliminar(semestre.id);
           mostrarAlerta({ mensaje: `Semestre "${semestre.nombre}" eliminado correctamente.`, variante: 'exito' });
           await cargarSemestres(pagina);
-        } catch {
-          mostrarAlerta({ mensaje: 'No se pudo eliminar el semestre. Intenta de nuevo.', variante: 'error' });
+        } catch (err) {
+          mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo eliminar el semestre. Intenta de nuevo.'), variante: 'error' });
         }
       },
     });

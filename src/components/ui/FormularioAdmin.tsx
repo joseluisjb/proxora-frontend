@@ -23,7 +23,7 @@ export default function FormularioAdmin({
   children,
 }: FormularioAdminProps) {
   return (
-    <div className="max-w-[680px] animate-slide-up">
+    <div className="max-w-[680px] mx-auto animate-slide-up">
       <Breadcrumb segmentos={breadcrumb} />
 
       <div className="mt-2.5 mb-6">

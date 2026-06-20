@@ -22,9 +22,4 @@ export const lineasService = {
 
   eliminar: (id: string) =>
     api.delete(`/lineas-investigacion/${id}`).then(() => undefined),
-
-  listarActivas: (params: { size?: number }) =>
-    api
-      .get<PaginatedResponse<LineaInvestigacionResponse>>('/lineas-investigacion/activas', { params })
-      .then((r) => r.data),
 }

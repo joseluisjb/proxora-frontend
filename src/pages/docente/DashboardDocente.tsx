@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useAlertaContext } from '../../context/AlertaContext'
+import { extraerMensajeError } from '../../utils/errores'
 import { dashboardDocenteService, type ResumenDashboardDocente } from '../../services/docente/dashboard.service'
 import { evaluacionesDocenteService } from '../../services/docente/evaluaciones.service'
 import type { ProyectoResponse } from '../../types/api.types'
@@ -65,8 +66,8 @@ export default function DashboardDocente() {
         setResumen(res)
         setProyectos(paginado.content)
       })
-      .catch(() => {
-        mostrarAlerta({ mensaje: 'Error al cargar el dashboard. Intenta de nuevo.', variante: 'error' })
+      .catch((err) => {
+        mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al cargar el dashboard. Intenta de nuevo.'), variante: 'error' })
       })
       .finally(() => setCargando(false))
   }, [idDocente]) // eslint-disable-line react-hooks/exhaustive-deps

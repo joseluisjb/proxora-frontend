@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext'
 import { evaluacionesDocenteService } from '../../services/docente/evaluaciones.service'
 import { proyectosService } from '../../services/proyectos.service'
 import type { ProyectoDetalleResponse, EvaluacionResponse } from '../../types/api.types'
+import { VISIBILIDAD_INTERNA_CONFIG } from '../../constants/visibilidad'
 import { useAlertaContext } from '../../context/AlertaContext'
+import { extraerMensajeError } from '../../utils/errores'
 import ModalConfirmacion from '../../components/ui/ModalConfirmacion'
 import { useModalConfirmacion } from '../../hooks/useModalConfirmacion'
 
@@ -161,9 +163,9 @@ export default function ProyectoEvaluarDetalle() {
       } catch {
         setEvaluaciones([])
       }
-    } catch {
+    } catch (err) {
       setError('No se pudo cargar la información del proyecto.')
-      mostrarAlerta({ mensaje: 'No se pudo cargar el proyecto.', variante: 'error' })
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo cargar el proyecto.'), variante: 'error' })
     } finally {
       setCargando(false)
     }
@@ -190,8 +192,8 @@ export default function ProyectoEvaluarDetalle() {
       setComentario('')
       const evs = await evaluacionesDocenteService.listarEvaluaciones(id)
       setEvaluaciones(evs)
-    } catch {
-      mostrarAlerta({ mensaje: 'Error al enviar la calificación. Intenta de nuevo.', variante: 'error' })
+    } catch (err) {
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'Error al enviar la calificación. Intenta de nuevo.'), variante: 'error' })
     } finally {
       setEnviando(false)
     }
@@ -263,8 +265,8 @@ export default function ProyectoEvaluarDetalle() {
     setDescargando(idVersion)
     try {
       await proyectosService.descargarVersion(id, idVersion)
-    } catch {
-      mostrarAlerta({ mensaje: 'No se pudo descargar el documento. Intenta de nuevo.', variante: 'error' })
+    } catch (err) {
+      mostrarAlerta({ mensaje: extraerMensajeError(err, 'No se pudo descargar el documento. Intenta de nuevo.'), variante: 'error' })
     } finally {
       setDescargando(null)
     }
@@ -296,17 +298,22 @@ export default function ProyectoEvaluarDetalle() {
       </button>
 
       {/* Dos columnas */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-[1fr_320px] items-start">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px] items-start">
 
         {/* ── Columna izquierda ── */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 min-w-0">
 
           {/* Tarjeta de información del proyecto */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm p-6 animate-slide-up">
-            {/* Estado */}
-            <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1 rounded-md mb-4 ${estadoCfg.className}`}>
-              {estadoCfg.label}
-            </span>
+            {/* Estado y visibilidad */}
+            <div className="flex items-center gap-1.5 flex-wrap mb-4">
+              <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1 rounded-md ${estadoCfg.className}`}>
+                {estadoCfg.label}
+              </span>
+              <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1 rounded-md ${VISIBILIDAD_INTERNA_CONFIG[proyecto.visibilidad].clases}`}>
+                {VISIBILIDAD_INTERNA_CONFIG[proyecto.visibilidad].label}
+              </span>
+            </div>
 
             {/* Título */}
             <h1 className="text-[22px] font-bold text-[#111827] leading-snug mb-2">
@@ -319,7 +326,7 @@ export default function ProyectoEvaluarDetalle() {
                 <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-[0.1em] mb-1.5">
                   Resumen
                 </p>
-                <p className="text-[13px] text-[#6B7280] leading-relaxed">
+                <p className="text-[13px] text-[#6B7280] leading-relaxed [overflow-wrap:anywhere]">
                   {proyecto.resumen}
                 </p>
               </div>
@@ -566,7 +573,7 @@ export default function ProyectoEvaluarDetalle() {
         </div>
 
         {/* ── Columna derecha (sticky) ── */}
-        <div className="flex flex-col gap-4 sticky top-6">
+        <div className="flex flex-col gap-4 sticky top-6 min-w-0">
 
           {/* Formulario de calificación */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-hidden animate-slide-up">
