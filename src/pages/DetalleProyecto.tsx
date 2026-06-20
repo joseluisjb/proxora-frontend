@@ -17,10 +17,10 @@ const ESTADO_CONFIG: Record<EstadoProyecto, { label: string; clases: string }> =
   retrasado:     { label: 'Retrasado',     clases: 'bg-[#FEE2E2] text-[#991B1B]' },
 };
 
-const VISIBILIDAD_LABEL: Record<NivelVisibilidad, string> = {
-  solo_metadatos:   'Solo metadatos',
-  lectura:          'Solo lectura',
-  lectura_descarga: 'Lectura y descarga',
+const VISIBILIDAD_CONFIG: Record<NivelVisibilidad, { label: string; clases: string }> = {
+  solo_metadatos:   { label: 'No disponible para ver',  clases: 'bg-[#FEE2E2] text-[#991B1B]' },
+  lectura:          { label: 'Solo lectura',            clases: 'bg-[#DBEAFE] text-[#1E40AF]' },
+  lectura_descarga: { label: 'Lectura y descarga',      clases: 'bg-[#DCFCE7] text-[#166534]' },
 };
 
 function formatearFecha(iso: string): string {
@@ -175,7 +175,9 @@ export default function DetalleProyecto() {
                 </span>
                 <h1 className="text-[32px] font-bold text-[#111827] m-0 mb-4 leading-tight max-md:text-2xl">{proyecto.titulo}</h1>
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-xs bg-[#F3F4F6] text-[#374151] px-2.5 py-1 rounded-md font-medium">{VISIBILIDAD_LABEL[proyecto.visibilidad]}</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-md font-semibold ${VISIBILIDAD_CONFIG[proyecto.visibilidad].clases}`}>
+                    {VISIBILIDAD_CONFIG[proyecto.visibilidad].label}
+                  </span>
                   <span className="text-[13px] text-[#6B7280]">Registrado el {formatearFecha(proyecto.creadoEn)}</span>
                   {proyecto.semestre && <span className="text-[13px] text-[#6B7280]">Semestre {proyecto.semestre}</span>}
                 </div>

@@ -47,7 +47,7 @@ export const proyectosService = {
     const response = await api.get(`/proyectos/${idProyecto}/versiones/${idVersion}/download`, {
       responseType: 'blob',
     });
-    const mimeType = response.headers['content-type'] ?? 'application/octet-stream';
+    const mimeType = String(response.headers['content-type'] ?? 'application/octet-stream');
     const blob = new Blob([response.data], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
     window.open(url, '_blank', 'noopener,noreferrer');

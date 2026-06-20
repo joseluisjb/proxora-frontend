@@ -133,7 +133,7 @@ export default function ListaProyectosDocente() {
           error={error}
           vistaActual="grilla"
           onReintentar={() => cargarProyectos(aplicados, paginaActual)}
-          mostrarVisibilidad={false}
+          mostrarVisibilidad
           mostrarDirector
           mostrarIntegrantes
           columnas={2}

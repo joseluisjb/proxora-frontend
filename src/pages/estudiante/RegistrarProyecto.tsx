@@ -31,7 +31,7 @@ function formatearTamano(bytes: number): string {
 function validarArchivo(file: File): string | null {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
   if (!['pdf', 'doc', 'docx'].includes(ext)) return 'Solo se permiten archivos PDF, DOC y DOCX';
-  if (file.size > 25 * 1024 * 1024) return 'El archivo no puede superar 25 MB';
+  if (file.size > 100 * 1024 * 1024) return 'El archivo no puede superar 100 MB';
   return null;
 }
 
@@ -451,7 +451,7 @@ export default function RegistrarProyecto() {
                 >
                   <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth={1.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                   <p className="text-[13px] text-[#6B7280] m-0">Arrastra tu archivo aquí o <span className="text-[#B91C1C] font-semibold cursor-pointer">haz clic para seleccionar</span></p>
-                  <p className="text-[11px] text-[#9CA3AF] m-0">PDF, DOC o DOCX • Máximo 25 MB</p>
+                  <p className="text-[11px] text-[#9CA3AF] m-0">PDF, DOC o DOCX • Máximo 100 MB</p>
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} aria-hidden="true" />
