@@ -88,7 +88,7 @@ export interface RegistroRequest {
   nombre: string
   apellido: string
   correo: string
-  password: string
+  contrasena: string
 }
 
 export interface LoginResponse {

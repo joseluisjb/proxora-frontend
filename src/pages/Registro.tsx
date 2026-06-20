@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { usuariosService } from '../services/usuarios.service';
 
 interface RegistroFormState {
   nombre: string
@@ -63,14 +65,33 @@ export default function Registro() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
     set({ registrando: true, errores: {} });
-    setTimeout(() => {
+
+    try {
+      await usuariosService.crear({
+        nombre: estado.nombre.trim(),
+        apellido: estado.apellido.trim(),
+        correo: estado.correo.trim(),
+        contrasena: estado.contrasena,
+      });
       set({ registrando: false, exito: true });
       setTimeout(() => navigate('/login'), 2500);
-    }, 1200);
+    } catch (err) {
+      let mensaje = 'No se pudo conectar con el servidor. Intenta de nuevo.';
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 409) {
+          mensaje = 'Ya existe una cuenta registrada con ese correo';
+        } else if (err.response.status === 400) {
+          mensaje = 'Por favor verifica los datos ingresados';
+        } else {
+          mensaje = 'Ocurrió un error al crear la cuenta. Intenta de nuevo.';
+        }
+      }
+      set({ registrando: false, errores: { general: mensaje } });
+    }
   };
 
   const inputCls = (hasError: boolean) =>
